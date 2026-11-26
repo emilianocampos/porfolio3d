@@ -12,6 +12,7 @@ interface SceneProps {
   activeZone: InteractiveZone | null;
   modalOpen: boolean;
   resetPropsSignal: number;
+  likesCount: number;
   localColor: string;
   remoteIds: string[];
   remoteColors: Record<string, string>;
@@ -32,6 +33,7 @@ export function Scene({
   activeZone,
   modalOpen,
   resetPropsSignal,
+  likesCount,
   localColor,
   remoteIds,
   remoteColors,
@@ -106,7 +108,11 @@ export function Scene({
         <directionalLight position={[12, 14, 14]} intensity={0.45} color="#dbeafe" />
       )}
 
-      <WorldMap activeZone={activeZone} resetSignal={resetPropsSignal} />
+      <WorldMap
+        activeZone={activeZone}
+        resetSignal={resetPropsSignal}
+        likesCount={likesCount}
+      />
       <PhysicsProps resetSignal={resetPropsSignal} />
       <RemotePlayers
         remoteIds={remoteIds}

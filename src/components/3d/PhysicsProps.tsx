@@ -241,7 +241,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.9, 2.45, -11.46],
+    spawn: [0.2, 2.45, -11.46],
   },
   {
     id: 'bjj-belt-brown',
@@ -252,7 +252,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.9, 2.15, -11.46],
+    spawn: [0.2, 2.15, -11.46],
   },
   {
     id: 'bjj-belt-purple',
@@ -263,7 +263,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.9, 1.85, -11.46],
+    spawn: [0.2, 1.85, -11.46],
   },
   {
     id: 'bjj-belt-blue',
@@ -274,7 +274,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.9, 1.55, -11.46],
+    spawn: [0.2, 1.55, -11.46],
   },
   {
     id: 'bjj-belt-white',
@@ -285,7 +285,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.9, 1.25, -11.46],
+    spawn: [0.2, 1.25, -11.46],
   },
 
   // === GOOGLE-COLORED GIANT YOGA / GYM BALLS (trimmed to 3 for mobile FPS) ===
@@ -297,17 +297,8 @@ const INITIAL_PROPS: PropConfig[] = [
   { id: 'box-1', kind: 'box', color: '#c08446', size: 0.58, mass: 1.0, restitution: 0.35, spawn: [2.2, 0.29, 3.0] },
   { id: 'box-2', kind: 'box', color: '#b07438', size: 0.52, mass: 0.85, restitution: 0.35, spawn: [2.2, 0.84, 3.0] },
 
-  // === TECH CONES AROUND DRONE PAD ===
-  { id: 'cone-1', kind: 'cone', color: '#f97316', size: 0.34, mass: 0.45, restitution: 0.42, spawn: [-1.7, 0.34, -4.0] },
-  { id: 'cone-2', kind: 'cone', color: '#f97316', size: 0.34, mass: 0.45, restitution: 0.42, spawn: [1.7, 0.34, -4.0] },
-  { id: 'cone-3', kind: 'cone', color: '#f97316', size: 0.34, mass: 0.45, restitution: 0.42, spawn: [-1.7, 0.34, -6.8] },
-
   // === COLORFUL FOAM CUBE ===
   { id: 'cube-1', kind: 'cube', color: '#4285F4', size: 0.46, mass: 0.7, restitution: 0.45, spawn: [-5.6, 0.23, 2.0] },
-
-  // === OFFICE STOOLS / OTTOMANS ===
-  { id: 'cyl-1', kind: 'cylinder', color: '#6366f1', size: 0.42, mass: 0.9, restitution: 0.4, spawn: [-9.2, 0.28, 1.4] },
-  { id: 'cyl-2', kind: 'cylinder', color: '#ec4899', size: 0.42, mass: 0.9, restitution: 0.4, spawn: [9.8, 0.28, 2.8] },
 
   // === 2 GUITARS ON TRIPOD STANDS (KNOCKABLE!) ===
   {
@@ -438,13 +429,13 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
     // 0. Check if player, flying prop, or remote visitor smashes the BJJ Belt Wall Rack!
     const remoteRackVx = realtimeEvents.pendingRackSmash;
     realtimeEvents.pendingRackSmash = null;
-    let localRackHit = Math.abs(px - 0.9) < 1.55 && pz < -9.75 && (py > 0.12 || pSpeed > 1.2);
+    let localRackHit = Math.abs(px - 0.2) < 1.55 && pz < -9.75 && (py > 0.12 || pSpeed > 1.2);
     if (!localRackHit && remoteRackVx === null) {
       for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i];
         if (b.pinned) continue;
         if (
-          Math.abs(b.x - 0.9) < 1.4 &&
+          Math.abs(b.x - 0.2) < 1.4 &&
           b.z < -10.2 &&
           b.y > 0.75 &&
           Math.hypot(b.vx, b.vy, b.vz) > 1.8

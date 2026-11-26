@@ -1,4 +1,4 @@
-import { Briefcase, Code2, ExternalLink, Mail, MapPin, Video, X } from 'lucide-react';
+import { Briefcase, Code2, ExternalLink, Heart, Mail, MapPin, MessageCircle, Video, X } from 'lucide-react';
 import {
   ABOUT_INFO,
   CONTACT_INFO,
@@ -13,12 +13,20 @@ import { ReviewsSection } from './ReviewsSection';
 interface SectionModalProps {
   section: ZoneId | null;
   openReviewForm?: boolean;
+  likesCount: number;
+  hasLiked: boolean;
+  liking: boolean;
+  onGiveLike: () => void;
   onClose: () => void;
 }
 
 export function SectionModal({
   section,
   openReviewForm = false,
+  likesCount,
+  hasLiked,
+  liking,
+  onGiveLike,
   onClose,
 }: SectionModalProps) {
   if (!section) return null;
@@ -40,6 +48,7 @@ export function SectionModal({
               {section === 'skills' && 'Pizarra & Stack · Skills'}
               {section === 'press' && 'Muro de Prensa · Mascotas Perdidas'}
               {section === 'reviews' && 'Muro de Clientes · Reseñas'}
+              {section === 'likes' && 'Contador LED en Vivo · Apoyo'}
               {section === 'contact' && 'Recepción · Contacto'}
             </span>
             <h2>
@@ -49,6 +58,7 @@ export function SectionModal({
               {section === 'skills' && 'Stack & Habilidades'}
               {section === 'press' && 'Mi Paso por los Medios'}
               {section === 'reviews' && 'Reseñas de Clientes'}
+              {section === 'likes' && 'Dejá tu Me Gusta'}
               {section === 'contact' && '¡Hablemos!'}
             </h2>
           </div>
@@ -197,6 +207,38 @@ export function SectionModal({
             <ReviewsSection defaultOpenForm={openReviewForm} />
           )}
 
+          {section === 'likes' && (
+            <div className="likes-section">
+              <div className="likes-digital-board">
+                <span className="likes-digital-board__label">
+                  ♥ CONTADOR DIGITAL EN VIVO
+                </span>
+                <div className="likes-digital-board__digits">
+                  {String(Math.max(0, likesCount)).padStart(5, '0')}
+                </div>
+                <span className="likes-digital-board__hint">
+                  Cada Me Gusta actualiza al instante el tablero LED en la pared 3D
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className={`likes-cta-btn ${hasLiked ? 'likes-cta-btn--liked' : ''}`}
+                disabled={hasLiked || liking}
+                onClick={onGiveLike}
+              >
+                <Heart size={22} fill={hasLiked ? 'currentColor' : 'none'} />
+                <span>
+                  {hasLiked
+                    ? '¡Gracias por tu Me Gusta!'
+                    : liking
+                      ? 'Sumando...'
+                      : 'Dejar mi Me Gusta'}
+                </span>
+              </button>
+            </div>
+          )}
+
           {section === 'contact' && (
             <div className="contact-section">
               <p className="about-bio">
@@ -205,6 +247,15 @@ export function SectionModal({
               </p>
 
               <div className="contact-links">
+                <a
+                  href={CONTACT_INFO.whatsapp}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="contact-item"
+                >
+                  <MessageCircle size={18} />
+                  <span>WhatsApp · ¡Charlemos sobre tu proyecto!</span>
+                </a>
                 <a href={`mailto:${CONTACT_INFO.email}`} className="contact-item">
                   <Mail size={18} />
                   <span>{CONTACT_INFO.email}</span>

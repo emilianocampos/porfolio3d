@@ -5,6 +5,7 @@ export type ZoneId =
   | 'skills'
   | 'press'
   | 'reviews'
+  | 'likes'
   | 'contact';
 
 export interface CreatorSocial {
@@ -160,8 +161,21 @@ export const ZONES: InteractiveZone[] = [
     walkTarget: [12.0, -4.0],
     padPosition: [12.0, 0.03, -5.0],
     labelPosition: [12.0, 2.55, -5.0],
-    radius: 3.4,
+    radius: 3.2,
     color: '#eab308',
+  },
+  {
+    id: 'likes',
+    title: 'Me Gusta',
+    subtitle: 'Contador LED · Apoyá el portfolio',
+    callout: '¡Dejá tu Me Gusta ❤️!',
+    actionLabel: 'Dejar Me Gusta',
+    position: [8.8, 0, -9.2],
+    walkTarget: [8.8, -7.2],
+    padPosition: [8.8, 1.02, -9.2],
+    labelPosition: [8.8, 2.55, -9.2],
+    radius: 3.0,
+    color: '#f43f5e',
   },
   {
     id: 'contact',
@@ -316,9 +330,10 @@ export const ABOUT_INFO = {
 
 export const CONTACT_INFO = {
   email: 'tuemail@ejemplo.com',
+  whatsapp: 'https://wa.me/5492804000000?text=Hola%20Emi!%20Vi%20tu%20portfolio%203D%20y%20tengo%20un%20proyecto%20en%20mente',
   github: 'https://github.com/tuusuario',
   linkedin: 'https://linkedin.com/in/tuusuario',
-  location: 'Chubut, Argentina (Remoto)',
+  location: 'Trelew, Chubut, Argentina (Remoto)',
 };
 
 export const PRESS_MEDIA = {

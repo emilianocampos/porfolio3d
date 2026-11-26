@@ -1,6 +1,7 @@
 import {
   Cpu,
   FolderKanban,
+  Heart,
   Mail,
   Newspaper,
   RotateCcw,
@@ -27,6 +28,7 @@ const ZONE_ICONS: Record<ZoneId, typeof FolderKanban> = {
   skills: Cpu,
   press: Newspaper,
   reviews: Star,
+  likes: Heart,
   contact: Mail,
 };
 

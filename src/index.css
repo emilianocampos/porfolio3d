@@ -466,6 +466,81 @@ body,
   color: #94a3b8;
 }
 
+/* Digital Likes Section */
+.likes-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 12px 0 8px;
+}
+
+.likes-digital-board {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 20px;
+  border-radius: 18px;
+  background: #090d16;
+  border: 2px solid rgba(244, 63, 94, 0.55);
+  box-shadow: 0 0 36px rgba(244, 63, 94, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.likes-digital-board__label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #fda4af;
+}
+
+.likes-digital-board__digits {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: clamp(44px, 10vw, 68px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fb7185;
+  text-shadow: 0 0 22px rgba(244, 63, 94, 0.85);
+  line-height: 1.05;
+}
+
+.likes-digital-board__hint {
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+.likes-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(244, 63, 94, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.likes-cta-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 16px 36px rgba(244, 63, 94, 0.6);
+}
+
+.likes-cta-btn--liked {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #6ee7b7;
+  box-shadow: none;
+  cursor: default;
+}
+
 .press-section {
   display: flex;
   flex-direction: column;

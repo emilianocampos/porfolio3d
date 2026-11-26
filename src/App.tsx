@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { type InteractiveZone, ZONES, type ZoneId } from './data/portfolioData';
 import { navigationState, realtimeEvents } from './state/inputState';
 import { useRealtimeOffice } from './hooks/useRealtimeOffice';
+import { usePortfolioLikes } from './hooks/usePortfolioLikes';
 import { Scene } from './components/3d/Scene';
 import { HUD } from './components/ui/HUD';
 import { MobileControls } from './components/ui/MobileControls';
@@ -32,6 +33,8 @@ export default function App() {
     remoteEmotes,
     sendEmote,
   } = useRealtimeOffice();
+
+  const { likesCount, hasLiked, liking, giveLike } = usePortfolioLikes();
 
   const handleNavigateZone = useCallback(
     (id: ZoneId) => {
@@ -98,6 +101,7 @@ export default function App() {
         activeZone={activeZone}
         modalOpen={openSection !== null}
         resetPropsSignal={resetPropsSignal}
+        likesCount={likesCount}
         localColor={localColor}
         remoteIds={remoteIds}
         remoteColors={remoteColors}
@@ -137,6 +141,10 @@ export default function App() {
       <SectionModal
         section={openSection}
         openReviewForm={openReviewForm}
+        likesCount={likesCount}
+        hasLiked={hasLiked}
+        liking={liking}
+        onGiveLike={giveLike}
         onClose={() => setOpenSection(null)}
       />
     </main>

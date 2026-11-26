@@ -7,6 +7,7 @@ import { PatrolDrone } from './PatrolDrone';
 interface WorldMapProps {
   activeZone: InteractiveZone | null;
   resetSignal: number;
+  likesCount: number;
 }
 
 /**
@@ -193,6 +194,408 @@ function WallHeroSign({
   );
 }
 
+/** Glowing digital LED counter mounted on the office wall showing real-time Likes */
+function DigitalLikeCounter({
+  position,
+  likesCount,
+}: {
+  position: [number, number, number];
+  likesCount: number;
+}) {
+  const { canvas, texture } = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 224;
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return { canvas: c, texture: t };
+  }, []);
+
+  useEffect(() => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Matte black LED panel background
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, 512, 224);
+
+    // Subtle LED scanline grid tint
+    ctx.strokeStyle = 'rgba(244, 63, 94, 0.55)';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(8, 8, 496, 208);
+
+    // Top label
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fda4af';
+    ctx.font = '700 26px system-ui, -apple-system, sans-serif';
+    ctx.fillText('♥  ME GUSTA EN VIVO', 256, 46);
+
+    // Unlit ghost LED digits behind active digits (real digital clock/counter look)
+    const formatted = String(Math.max(0, likesCount)).padStart(5, '0');
+    ctx.font = '900 108px "Consolas", "Courier New", monospace';
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.14)';
+    ctx.fillText('88888', 256, 138);
+
+    // Glowing lit LED digits
+    ctx.shadowColor = '#f43f5e';
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = '#fb7185';
+    ctx.fillText(formatted, 256, 138);
+    ctx.shadowBlur = 0;
+
+    texture.needsUpdate = true;
+  }, [canvas, texture, likesCount]);
+
+  useEffect(() => {
+    return () => {
+      texture.dispose();
+    };
+  }, [texture]);
+
+  return (
+    <group position={position}>
+      {/* Matte black aluminum LED display housing */}
+      <mesh>
+        <boxGeometry args={[4.4, 1.95, 0.16]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.65} roughness={0.3} />
+      </mesh>
+      {/* Glowing LED screen face */}
+      <mesh position={[0, 0, 0.086]}>
+        <planeGeometry args={[4.16, 1.74]} />
+        <meshStandardMaterial
+          map={texture}
+          emissiveMap={texture}
+          emissive="#ffffff"
+          emissiveIntensity={0.95}
+          roughness={0.2}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Illuminated Contact Wall Board above Reception ("¿TENÉS UN PROYECTO EN MENTE?" + WhatsApp, LinkedIn, Email) */
+function ContactWallSign({ position }: { position: [number, number, number] }) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 768;
+    canvas.height = 420;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      // Sleek dark slate gradient background
+      const grad = ctx.createLinearGradient(0, 0, 768, 420);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(1, '#1e293b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 768, 420);
+
+      // Amber/gold accent frame matching Contacto zone
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(10, 10, 748, 400);
+
+      // Title
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 42px system-ui, -apple-system, sans-serif';
+      ctx.fillText('¿TENÉS UN PROYECTO EN MENTE?', 384, 78);
+
+      // Subtitle
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '700 24px system-ui, -apple-system, sans-serif';
+      ctx.fillText('¡CONTACTAME Y LO HACEMOS REALIDAD!', 384, 128);
+
+      // 3 crisp rounded icon cards: WhatsApp, LinkedIn, Email
+      const cards = [
+        { x: 154, color: '#25D366', kind: 'whatsapp' as const, label: 'WhatsApp' },
+        { x: 384, color: '#0a66c2', kind: 'linkedin' as const, label: 'LinkedIn' },
+        { x: 614, color: '#f59e0b', kind: 'email' as const, label: 'Email' },
+      ];
+
+      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      };
+
+      for (const c of cards) {
+        // Card tile background
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        drawRoundRect(c.x - 95, 178, 190, 196, 22);
+        ctx.fill();
+        ctx.strokeStyle = c.color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        if (c.kind === 'whatsapp') {
+          // Real WhatsApp logo: #25D366 circle + white speech-bubble outline + white phone handset
+          ctx.save();
+          ctx.translate(c.x, 250);
+
+          // Green circular badge
+          ctx.fillStyle = '#25D366';
+          ctx.beginPath();
+          ctx.arc(0, 0, 50, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Authentic WhatsApp white speech-bubble ring with bottom-left tail
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 6.5;
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.arc(0, -1, 31, Math.PI * 0.78, Math.PI * 2.58, false);
+          ctx.lineTo(-34, 33);
+          ctx.closePath();
+          ctx.stroke();
+
+          // Crisp white classic WhatsApp phone handset inside
+          ctx.save();
+          ctx.translate(-22, -23);
+          ctx.scale(1.85, 1.85);
+          const phonePath = new Path2D(
+            'M16.5 13.5c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.8.37-.27.3-1.05 1.02-1.05 2.5 0 1.47 1.07 2.9 1.22 3.1.15.2 2.11 3.22 5.11 4.52.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.57-.09 1.75-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z'
+          );
+          ctx.fillStyle = '#ffffff';
+          ctx.fill(phonePath);
+          ctx.restore();
+
+          ctx.restore();
+        } else if (c.kind === 'linkedin') {
+          ctx.fillStyle = c.color;
+          ctx.beginPath();
+          ctx.arc(c.x, 250, 48, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 50px system-ui, -apple-system, sans-serif';
+          ctx.fillText('in', c.x, 253);
+        } else {
+          ctx.fillStyle = c.color;
+          ctx.beginPath();
+          ctx.arc(c.x, 250, 48, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Crisp white vector envelope
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 5;
+          ctx.lineJoin = 'round';
+          ctx.strokeRect(c.x - 24, 233, 48, 34);
+          ctx.beginPath();
+          ctx.moveTo(c.x - 24, 234);
+          ctx.lineTo(c.x, 253);
+          ctx.lineTo(c.x + 24, 234);
+          ctx.stroke();
+        }
+
+        // Label
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '700 26px system-ui, -apple-system, sans-serif';
+        ctx.fillText(c.label, c.x, 336);
+      }
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      texture.dispose();
+    };
+  }, [texture]);
+
+  return (
+    <group position={position}>
+      <mesh>
+        <boxGeometry args={[3.95, 2.2, 0.12]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.55} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, 0.068]}>
+        <planeGeometry args={[3.76, 2.02]} />
+        <meshStandardMaterial
+          map={texture}
+          emissiveMap={texture}
+          emissive="#ffffff"
+          emissiveIntensity={0.45}
+          roughness={0.25}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Crisp 1-draw-call vector floor strip with real Facebook, YouTube, TikTok & Instagram logos */
+function StudioFloorLogos({ position }: { position: [number, number, number] }) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, 1024, 256);
+
+      const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      };
+
+      const centers = [148, 392, 636, 880];
+      const cy = 108;
+
+      // 1. FACEBOOK (#1877F2 circle + iconic white "f")
+      {
+        const cx = centers[0];
+        ctx.fillStyle = '#1877F2';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 66, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 108px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('f', cx + 4, cy + 12);
+      }
+
+      // 2. YOUTUBE (#FF0000 rounded rect + white play triangle)
+      {
+        const cx = centers[1];
+        ctx.fillStyle = '#FF0000';
+        drawRoundRect(cx - 76, cy - 52, 152, 104, 28);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(cx - 18, cy - 26);
+        ctx.lineTo(cx - 18, cy + 26);
+        ctx.lineTo(cx + 30, cy);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 3. TIKTOK (black rounded square + cyan/magenta/white musical note)
+      {
+        const cx = centers[2];
+        ctx.fillStyle = '#09090b';
+        drawRoundRect(cx - 66, cy - 66, 132, 132, 30);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        const drawNote = (ox: number, oy: number, color: string) => {
+          ctx.save();
+          ctx.translate(cx + ox, cy + oy);
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
+          ctx.lineWidth = 14;
+          ctx.lineCap = 'round';
+          // Vertical stem + top flag curve
+          ctx.beginPath();
+          ctx.moveTo(8, -36);
+          ctx.lineTo(8, 22);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(28, -36, 20, Math.PI, Math.PI * 0.45, true);
+          ctx.stroke();
+          // Bottom note loop
+          ctx.beginPath();
+          ctx.arc(-10, 22, 18, 0, Math.PI * 1.65, false);
+          ctx.stroke();
+          ctx.restore();
+        };
+
+        drawNote(-4, -3, '#25F4EE');
+        drawNote(4, 3, '#FE2C55');
+        drawNote(0, 0, '#ffffff');
+      }
+
+      // 4. INSTAGRAM (signature gradient rounded square + white camera icon)
+      {
+        const cx = centers[3];
+        const igGrad = ctx.createLinearGradient(cx - 64, cy + 64, cx + 64, cy - 64);
+        igGrad.addColorStop(0, '#f9ce34');
+        igGrad.addColorStop(0.5, '#ee2a7b');
+        igGrad.addColorStop(1, '#6228d7');
+        ctx.fillStyle = igGrad;
+        drawRoundRect(cx - 66, cy - 66, 132, 132, 32);
+        ctx.fill();
+
+        // White inner camera outline
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 9;
+        drawRoundRect(cx - 42, cy - 42, 84, 84, 22);
+        ctx.stroke();
+
+        // Camera lens circle
+        ctx.beginPath();
+        ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Top-right flash dot
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx + 24, cy - 24, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Clean follower count labels under each logo
+      const labels = ['140K', '759', '25K', '17K'];
+      ctx.font = '800 32px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#f8fafc';
+      labels.forEach((lbl, idx) => {
+        ctx.fillText(lbl, centers[idx], 216);
+      });
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      texture.dispose();
+    };
+  }, [texture]);
+
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, -Math.PI / 2]}>
+      <planeGeometry args={[4.6, 1.15]} />
+      <meshStandardMaterial
+        map={texture}
+        transparent
+        roughness={0.4}
+        emissiveMap={texture}
+        emissive="#ffffff"
+        emissiveIntensity={0.28}
+      />
+    </mesh>
+  );
+}
+
 /** Floating glowing 3D icon above a PC / station */
 function FloatingStationIcon({
   position,
@@ -371,7 +774,7 @@ function ZonePad({
   );
 }
 
-export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
+export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps) {
   return (
     <group>
       {/* === FLOOR & ARCHITECTURAL DIORAMA BASE (Expanded 37.6 x 29.2 Office) === */}
@@ -491,48 +894,34 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         </mesh>
       ))}
 
-      {/* Blue tech accent wall + Dartboard */}
+      {/* Blue tech accent wall + Hero Sign */}
       <mesh position={[0.2, 1.55, -11.62]}>
         <boxGeometry args={[6.4, 3.1, 0.08]} />
         <meshStandardMaterial color="#2563eb" roughness={0.65} />
       </mesh>
       <WallHeroSign position={[0.2, 4.18, -11.58]} />
-      <group position={[-1.6, 2.25, -11.55]}>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.44, 0.44, 0.06, 20]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.5} />
-        </mesh>
-        <mesh position={[0, 0, 0.035]}>
-          <circleGeometry args={[0.31, 20]} />
-          <meshStandardMaterial color="#EA4335" />
-        </mesh>
-        <mesh position={[0, 0, 0.04]}>
-          <circleGeometry args={[0.14, 20]} />
-          <meshStandardMaterial color="#34A853" />
-        </mesh>
-      </group>
 
-      {/* === JIU-JITSU BELT WALL DISPLAY RACK (Back Wall, right of dartboard) === */}
+      {/* === JIU-JITSU BELT WALL DISPLAY RACK (Centered, light bamboo for crisp contrast) === */}
       {/* Belts themselves are destructible physics props in PhysicsProps.tsx */}
-      <group position={[0.9, 1.85, -11.55]}>
-        {/* Dark walnut wooden backboard */}
-        <mesh castShadow receiveShadow>
+      <group position={[0.2, 1.85, -11.55]}>
+        {/* Light natural bamboo backboard so Black, Brown & White belts all pop clearly */}
+        <mesh receiveShadow>
           <boxGeometry args={[2.15, 1.85, 0.06]} />
-          <meshStandardMaterial color="#3b2314" roughness={0.65} />
+          <meshStandardMaterial color="#e5c597" roughness={0.6} />
         </mesh>
-        {/* Top martial-arts header bar */}
-        <mesh position={[0, 0.96, 0.03]} castShadow>
-          <boxGeometry args={[2.3, 0.14, 0.1]} />
-          <meshStandardMaterial color="#1f1209" roughness={0.5} />
+        {/* Top warm-oak martial-arts header bar */}
+        <mesh position={[0, 0.96, 0.03]}>
+          <boxGeometry args={[2.32, 0.14, 0.1]} />
+          <meshStandardMaterial color="#9a6835" roughness={0.5} />
         </mesh>
-        {/* Side vertical rails holding the 5 belts */}
+        {/* Side vertical oak rails holding the 5 belts */}
         <mesh position={[-0.96, 0, 0.04]}>
           <boxGeometry args={[0.1, 1.8, 0.06]} />
-          <meshStandardMaterial color="#27160b" roughness={0.6} />
+          <meshStandardMaterial color="#b4834b" roughness={0.55} />
         </mesh>
         <mesh position={[0.96, 0, 0.04]}>
           <boxGeometry args={[0.1, 1.8, 0.06]} />
-          <meshStandardMaterial color="#27160b" roughness={0.6} />
+          <meshStandardMaterial color="#b4834b" roughness={0.55} />
         </mesh>
       </group>
 
@@ -569,16 +958,28 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         accent="#1d4ed8"
         imageUrl="/press/diario-mascotas.jpg"
       />
-      <PressFrame
-        position={[5.4, 3.55, -11.62]}
-        rotationY={0}
-        width={2.9}
-        height={1.95}
-        outlet="LU20 RADIO CHUBUT"
-        headline="Entrevista en Vivo"
-        accent="#f59e0b"
-        imageUrl="/press/lu20.jpg"
-      />
+      {/* === CARTEL DE CONTACTO ARRIBA DE RECEPCIÓN (WhatsApp, LinkedIn, Email) === */}
+      <ContactWallSign position={[5.6, 3.65, -11.58]} />
+
+      {/* === CONTADOR DIGITAL LED DE ME GUSTA EN LA PARED === */}
+      <DigitalLikeCounter position={[11.6, 3.65, -11.58]} likesCount={likesCount} />
+
+      {/* Pedestal interactivo para dejar Me Gusta */}
+      <group position={[8.8, 0, -9.2]}>
+        <mesh position={[0, 0.48, 0]} castShadow>
+          <cylinderGeometry args={[0.38, 0.46, 0.96, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.45} roughness={0.35} />
+        </mesh>
+        <mesh position={[0, 0.99, 0]}>
+          <cylinderGeometry args={[0.3, 0.34, 0.08, 16]} />
+          <meshStandardMaterial
+            color="#f43f5e"
+            emissive="#f43f5e"
+            emissiveIntensity={1.6}
+            roughness={0.2}
+          />
+        </mesh>
+      </group>
 
       {/* White pillar with clock (positioned to the right of the Oscars red carpet) */}
       <group position={[3.6, 0, -1.65]}>
@@ -827,6 +1228,8 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
           <planeGeometry args={[0.08, 5.4]} />
           <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.5} />
         </mesh>
+        {/* Real Facebook, YouTube, TikTok & Instagram logos printed on the studio floor */}
+        <StudioFloorLogos position={[15.18, 0.024, 0.8]} />
 
         {/* Main White Studio Desk (walkable topY = 0.88) */}
         <group position={[17.7, 0, 0.8]}>

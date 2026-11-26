@@ -52,6 +52,7 @@ export const waypointScreenMap: Record<ZoneId, WaypointScreenData> = {
   skills: { id: 'skills', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   press: { id: 'press', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   reviews: { id: 'reviews', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
+  likes: { id: 'likes', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   contact: { id: 'contact', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
 };
 

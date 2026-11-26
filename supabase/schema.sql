@@ -1,9 +1,10 @@
 -- ============================================================
--- Portfolio 3D — Tabla de Reseñas + Supabase Realtime
--- Copiá y pegá todo este script en:
+-- Portfolio 3D — Tablas de Reseñas y Contador de Me Gusta
+-- Script 100% idempotente (puedes ejecutarlo varias veces sin error)
 -- Supabase Dashboard -> SQL Editor -> New Query -> Run
 -- ============================================================
 
+-- 1. TABLA DE RESEÑAS
 create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
   author_name text not null check (char_length(trim(author_name)) >= 2),
@@ -15,31 +16,77 @@ create table if not exists public.reviews (
   created_at timestamptz not null default now()
 );
 
--- Activar Row Level Security (RLS)
 alter table public.reviews enable row level security;
 
--- 1. Cualquiera puede leer SOLO reseñas aprobadas por vos
+drop policy if exists "Public can read approved reviews" on public.reviews;
 create policy "Public can read approved reviews"
   on public.reviews
   for select
   using (approved = true);
 
--- 2. Cualquier cliente puede enviar una reseña nueva (entra con approved = false)
+drop policy if exists "Anyone can submit a review" on public.reviews;
 create policy "Anyone can submit a review"
   on public.reviews
   for insert
   with check (approved = false);
 
--- 3. Habilitar Realtime en la tabla reviews (para que aparezcan en vivo al aprobarlas)
-alter publication supabase_realtime add table public.reviews;
-
--- (Opcional) Reseña de ejemplo ya aprobada para probar:
-insert into public.reviews (author_name, company, project_name, rating, comment, approved)
-values (
-  'Cliente Ejemplo',
-  'Emprendimiento Local',
-  'Web Institucional',
-  5,
-  'Excelente trabajo, súper rápido y con un diseño moderno que encantó a nuestros clientes.',
-  true
+-- 2. TABLA DEL CONTADOR DIGITAL DE ME GUSTA
+create table if not exists public.site_stats (
+  id text primary key,
+  likes integer not null default 0,
+  updated_at timestamptz not null default now()
 );
+
+insert into public.site_stats (id, likes)
+values ('portfolio', 0)
+on conflict (id) do nothing;
+
+alter table public.site_stats enable row level security;
+
+drop policy if exists "Public can read site stats" on public.site_stats;
+create policy "Public can read site stats"
+  on public.site_stats
+  for select
+  using (true);
+
+create or replace function public.increment_portfolio_likes()
+returns integer
+language plpgsql
+security definer
+as $$
+declare
+  new_count integer;
+begin
+  insert into public.site_stats (id, likes, updated_at)
+  values ('portfolio', 1, now())
+  on conflict (id) do update
+    set likes = public.site_stats.likes + 1,
+        updated_at = now()
+  returning likes into new_count;
+  return new_count;
+end;
+$$;
+
+grant execute on function public.increment_portfolio_likes() to anon, authenticated;
+
+-- 3. HABILITAR REALTIME SOLO SI NO ESTÁN AGREGADAS AÚN
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'reviews'
+  ) then
+    alter publication supabase_realtime add table public.reviews;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'site_stats'
+  ) then
+    alter publication supabase_realtime add table public.site_stats;
+  end if;
+end $$;
