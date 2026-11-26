@@ -146,7 +146,7 @@ export const ZONES: InteractiveZone[] = [
     position: [-14.8, 0, -1.0],
     walkTarget: [-13.0, -1.0],
     padPosition: [-15.4, 0.9, -1.0],
-    labelPosition: [-15.4, 2.85, -1.0],
+    labelPosition: [-15.4, 2.05, -1.0],
     radius: 3.5,
     color: '#06b6d4',
   },
@@ -248,12 +248,12 @@ export const CREATOR_INFO = {
 export const PROJECTS: ProjectItem[] = [
   {
     id: 'proj-pets',
-    title: 'App Mascotas Perdidas y Encontradas',
+    title: 'Mascotas Trelew · Perdidas y Encontradas',
     description:
-      'Plataforma comunitaria para publicar y encontrar mascotas perdidas en Chubut. Destacada en Diario Jornada, Diario El Chubut y LU20 Radio Chubut.',
+      'Plataforma comunitaria geolocalizada para publicar y encontrar mascotas extraviadas en Trelew y el Valle. Destacada en Diario Jornada, Diario El Chubut y LU20 Radio Chubut.',
     tags: ['React', 'Impacto Social', 'Prensa Local', 'Web App'],
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-    demoUrl: 'https://example.com',
+    demoUrl: 'https://mascotastrelew.vercel.app',
     repoUrl: 'https://github.com',
   },
   {
@@ -322,10 +322,10 @@ export const CONTACT_INFO = {
 };
 
 export const PRESS_MEDIA = {
-  projectTitle: 'App de Mascotas Perdidas y Encontradas',
+  projectTitle: 'Mascotas Trelew · App de Mascotas Extraviadas',
   projectSummary:
-    'Creé esta app comunitaria para ayudar a vecinos de Chubut a publicar y reencontrar mascotas perdidas. El proyecto tuvo gran repercusión y me invitaron a contarlo en los principales medios de la ciudad.',
-  projectUrl: 'https://example.com',
+    'Creé esta web comunitaria gratuita y geolocalizada para ayudar a vecinos de Trelew y el Valle a reportar y reencontrar mascotas perdidas. El proyecto salió publicado en Diario El Chubut, Diario Jornada y LU20 Radio Chubut.',
+  projectUrl: 'https://mascotastrelew.vercel.app',
   // Pegá acá el link de tu video en Instagram / TikTok / YouTube / Facebook
   socialVideoUrl: 'https://instagram.com',
   socialVideoLabel: 'Ver video en redes sociales',
@@ -333,18 +333,18 @@ export const PRESS_MEDIA = {
   localVideoUrl: '/press/video-medios.mp4',
   appearances: [
     {
-      id: 'jornada',
-      outlet: 'Diario Jornada',
-      role: 'Nota periodística',
-      summary: 'Cobertura sobre el desarrollo y lanzamiento de la app solidaria de mascotas.',
-      imageUrl: '/press/jornada.jpg',
+      id: 'diario',
+      outlet: 'Diario El Chubut · Nota Impresa',
+      role: 'Nota periodística destacada',
+      summary: '“Una web gratuita creada en Trelew permite reportar y buscar mascotas extraviadas”.',
+      imageUrl: '/press/diario-mascotas.jpg',
     },
     {
-      id: 'chubut',
-      outlet: 'Diario El Chubut',
-      role: 'Nota en diario',
-      summary: 'Difusión comunitaria de la plataforma para conectar mascotas encontradas con sus familias.',
-      imageUrl: '/press/chubut.jpg',
+      id: 'jornada',
+      outlet: 'Diario Jornada',
+      role: 'Cobertura regional',
+      summary: 'Difusión sobre el desarrollo y lanzamiento de Mascotas Trelew.',
+      imageUrl: '/press/diario-mascotas.jpg',
     },
     {
       id: 'lu20',

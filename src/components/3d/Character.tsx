@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   BOX_OBSTACLES,
@@ -14,7 +13,7 @@ import {
   mobileInput,
   navigationState,
 } from '../../state/inputState';
-import { RobotModel } from './RobotModel';
+import { EmoteBubble3D, RobotModel } from './RobotModel';
 
 interface CharacterProps {
   disabled: boolean;
@@ -99,8 +98,8 @@ export function Character({
         if (nextDist !== null && lastPinchDist !== null) {
           const deltaPinch = lastPinchDist - nextDist;
           cameraDist.current = Math.max(
-            9.5,
-            Math.min(22, cameraDist.current + deltaPinch * 0.035)
+            8.5,
+            Math.min(28, cameraDist.current + deltaPinch * 0.035)
           );
         }
         lastPinchDist = nextDist;
@@ -108,8 +107,8 @@ export function Character({
         // Single-finger / mouse drag to orbit camera smoothly in all directions
         cameraYaw.current -= dx * 0.008;
         cameraPitch.current = Math.max(
-          0.3,
-          Math.min(1.18, cameraPitch.current + dy * 0.006)
+          0.06,
+          Math.min(1.56, cameraPitch.current + dy * 0.006)
         );
       }
     };
@@ -137,8 +136,8 @@ export function Character({
     const handleWheel = (e: WheelEvent) => {
       if (disabled) return;
       cameraDist.current = Math.max(
-        9.5,
-        Math.min(22, cameraDist.current + e.deltaY * 0.01)
+        8.5,
+        Math.min(28, cameraDist.current + e.deltaY * 0.01)
       );
     };
 
@@ -404,14 +403,8 @@ export function Character({
 
   return (
     <group ref={groupRef} position={[0, 0, -5.4]}>
-      {/* Floating emoji speech bubble above your robot */}
-      {localEmote && (
-        <Html position={[0, 2.85, 0]} center style={{ pointerEvents: 'none' }}>
-          <div key={localEmote.key} className="robot-emote-bubble">
-            {localEmote.emoji}
-          </div>
-        </Html>
-      )}
+      {/* Floating 3D emoji speech bubble above your robot */}
+      <EmoteBubble3D emote={localEmote} />
 
       {/* Ground contact shadow disc */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>

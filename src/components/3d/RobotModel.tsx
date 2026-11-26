@@ -1,5 +1,80 @@
-import type { RefObject } from 'react';
-import type * as THREE from 'three';
+import { type RefObject, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+
+const emoteTextureCache = new Map<string, THREE.CanvasTexture>();
+
+function getEmoteBubbleTexture(emoji: string): THREE.CanvasTexture {
+  const cached = emoteTextureCache.get(emoji);
+  if (cached) return cached;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.clearRect(0, 0, 128, 128);
+
+    // Speech bubble circle + small bottom pointer
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+    ctx.lineWidth = 5;
+
+    ctx.beginPath();
+    ctx.arc(64, 56, 46, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Small triangle tail at bottom
+    ctx.beginPath();
+    ctx.moveTo(52, 99);
+    ctx.lineTo(76, 99);
+    ctx.lineTo(64, 118);
+    ctx.closePath();
+    ctx.fill();
+
+    // Big crisp emoji centered
+    ctx.font = '56px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 64, 59);
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  emoteTextureCache.set(emoji, tex);
+  return tex;
+}
+
+/** Lightweight 3D billboard emoji bubble that always faces the camera cleanly */
+export function EmoteBubble3D({
+  emote,
+}: {
+  emote: { emoji: string; key: number } | null | undefined;
+}) {
+  const spriteRef = useRef<THREE.Sprite>(null);
+  const texture = useMemo(
+    () => (emote ? getEmoteBubbleTexture(emote.emoji) : null),
+    [emote?.emoji]
+  );
+
+  useFrame((state) => {
+    if (!spriteRef.current || !emote) return;
+    const age = (Date.now() - emote.key) * 0.001;
+    const pop = Math.min(1, age * 7.5);
+    const scale = (0.75 + pop * 0.45) + Math.sin(state.clock.elapsedTime * 6) * 0.04;
+    spriteRef.current.scale.set(scale, scale, 1);
+    spriteRef.current.position.y = 3.05 + Math.sin(state.clock.elapsedTime * 5) * 0.08;
+  });
+
+  if (!emote || !texture) return null;
+
+  return (
+    <sprite ref={spriteRef} position={[0, 3.05, 0]} scale={[1.15, 1.15, 1]}>
+      <spriteMaterial map={texture} transparent depthTest={false} />
+    </sprite>
+  );
+}
 
 export interface RobotColorTheme {
   torso: string;

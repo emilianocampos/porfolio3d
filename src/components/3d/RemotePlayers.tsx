@@ -1,9 +1,8 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { remotePlayersMap } from '../../state/inputState';
-import { ROBOT_PALETTE, RobotModel } from './RobotModel';
+import { EmoteBubble3D, ROBOT_PALETTE, RobotModel } from './RobotModel';
 
 function RemoteAvatar({
   playerId,
@@ -22,7 +21,11 @@ function RemoteAvatar({
   const rightLegRef = useRef<THREE.Mesh>(null);
   const walkCycleRef = useRef(0);
 
-  const player = remotePlayersMap.get(playerId);
+  const initialPosRef = useRef<[number, number, number]>([
+    remotePlayersMap.get(playerId)?.x ?? 0,
+    remotePlayersMap.get(playerId)?.y ?? 0,
+    remotePlayersMap.get(playerId)?.z ?? -5.4,
+  ]);
 
   useFrame((state, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
@@ -69,15 +72,9 @@ function RemoteAvatar({
   });
 
   return (
-    <group ref={groupRef} position={[player?.x ?? 0, player?.y ?? 0, player?.z ?? -5.4]}>
-      {/* Floating emoji bubble above remote visitor's robot */}
-      {emote && (
-        <Html position={[0, 2.85, 0]} center style={{ pointerEvents: 'none' }}>
-          <div key={emote.key} className="robot-emote-bubble">
-            {emote.emoji}
-          </div>
-        </Html>
-      )}
+    <group ref={groupRef} position={initialPosRef.current}>
+      {/* Floating 3D emoji speech bubble above remote visitor's robot */}
+      <EmoteBubble3D emote={emote} />
 
       {/* Ground contact shadow disc */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>

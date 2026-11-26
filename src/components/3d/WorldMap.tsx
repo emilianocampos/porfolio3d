@@ -558,26 +558,16 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         </mesh>
       </group>
 
-      {/* === MURO DE PRENSA EN LA PARED (Diario Jornada, El Chubut, LU20) === */}
+      {/* === MURO DE PRENSA EN LA PARED (Recorte unificado del diario + LU20) === */}
       <PressFrame
-        position={[-16.62, 3.25, -2.4]}
+        position={[-16.62, 4.18, -1.0]}
         rotationY={Math.PI / 2}
-        width={1.9}
-        height={2.35}
-        outlet="DIARIO JORNADA"
-        headline="App Mascotas Perdidas"
+        width={4.55}
+        height={3.2}
+        outlet="DIARIO EL CHUBUT · JORNADA"
+        headline="Mascotas Trelew · Emiliano Campos"
         accent="#1d4ed8"
-        imageUrl="/press/jornada.jpg"
-      />
-      <PressFrame
-        position={[-16.62, 3.25, 0.4]}
-        rotationY={Math.PI / 2}
-        width={1.9}
-        height={2.35}
-        outlet="DIARIO EL CHUBUT"
-        headline="Mascotas Encontradas"
-        accent="#dc2626"
-        imageUrl="/press/chubut.jpg"
+        imageUrl="/press/diario-mascotas.jpg"
       />
       <PressFrame
         position={[5.4, 3.55, -11.62]}

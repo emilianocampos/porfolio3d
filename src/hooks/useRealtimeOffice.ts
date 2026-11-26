@@ -139,6 +139,19 @@ export function useRealtimeOffice() {
         if (existing) {
           existing.emote = emoji;
           existing.emoteUntil = Date.now() + 2600;
+        } else {
+          remotePlayersMap.set(pid, {
+            id: pid,
+            name: String(payload.name ?? 'Visitante'),
+            color: String(payload.color ?? '#ef4444'),
+            x: 0,
+            y: 0,
+            z: -5.4,
+            rotY: 0,
+            emote: emoji,
+            emoteUntil: Date.now() + 2600,
+          });
+          setRemoteIds(Array.from(remotePlayersMap.keys()));
         }
         setRemoteEmotes((prev) => ({
           ...prev,
@@ -255,7 +268,7 @@ export function useRealtimeOffice() {
           rotY: characterState.rotY,
         },
       });
-    }, 95);
+    }, 120);
 
     return () => {
       window.clearInterval(intervalId);
@@ -286,6 +299,7 @@ export function useRealtimeOffice() {
       payload: {
         id: myIdRef.current,
         name: myNameRef.current,
+        color: myColorRef.current,
         emoji,
       },
     });
