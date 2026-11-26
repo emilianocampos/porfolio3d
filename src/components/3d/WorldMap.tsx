@@ -118,6 +118,81 @@ function PressFrame({
   );
 }
 
+/** Sleek illuminated wall sign ("EMILIANO CAMPOS · DESARROLLADOR WEB") */
+function WallHeroSign({
+  position,
+  width = 6.6,
+  height = 1.55,
+}: {
+  position: [number, number, number];
+  width?: number;
+  height?: number;
+}) {
+  const signTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      // Deep tech dark background gradient
+      const grad = ctx.createLinearGradient(0, 0, 1024, 256);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(0.5, '#111c3a');
+      grad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 256);
+
+      // Subtle glowing cyan border
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(10, 10, 1004, 236);
+
+      // Main Name
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(56, 189, 248, 0.55)';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 76px system-ui, -apple-system, sans-serif';
+      ctx.fillText('EMILIANO CAMPOS', 512, 102);
+
+      // Divider accent bar
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#6366f1';
+      ctx.fillRect(340, 148, 344, 4);
+
+      // Subtitle
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '700 31px system-ui, -apple-system, sans-serif';
+      ctx.fillText('DESARROLLADOR WEB  ·  CREADOR DE CONTENIDO', 512, 194);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, []);
+
+  return (
+    <group position={position}>
+      {/* Metallic backing frame */}
+      <mesh castShadow>
+        <boxGeometry args={[width + 0.16, height + 0.16, 0.1]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.65} roughness={0.28} />
+      </mesh>
+      {/* Illuminated sign face */}
+      <mesh position={[0, 0, 0.058]}>
+        <planeGeometry args={[width, height]} />
+        <meshStandardMaterial
+          map={signTexture}
+          emissiveMap={signTexture}
+          emissive="#ffffff"
+          emissiveIntensity={0.45}
+          roughness={0.25}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 /** Floating glowing 3D icon above a PC / station */
 function FloatingStationIcon({
   position,
@@ -238,45 +313,6 @@ function OfficeChair({
   );
 }
 
-function Monitor({
-  position,
-  rotationY = 0,
-  screenColor = '#38bdf8',
-  wide = false,
-}: {
-  position: [number, number, number];
-  rotationY?: number;
-  screenColor?: string;
-  wide?: boolean;
-}) {
-  const width = wide ? 1.25 : 0.88;
-  return (
-    <group position={position} rotation={[0, rotationY, 0]}>
-      <mesh position={[0, 0.14, 0]} castShadow>
-        <boxGeometry args={[0.08, 0.28, 0.08]} />
-        <meshStandardMaterial color="#475569" metalness={0.5} roughness={0.3} />
-      </mesh>
-      <mesh position={[0, 0.02, 0]} castShadow>
-        <boxGeometry args={[0.28, 0.03, 0.22]} />
-        <meshStandardMaterial color="#475569" metalness={0.5} roughness={0.3} />
-      </mesh>
-      <mesh position={[0, 0.45, 0]} castShadow>
-        <boxGeometry args={[width, 0.54, 0.06]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.25} metalness={0.35} />
-      </mesh>
-      <mesh position={[0, 0.45, 0.035]}>
-        <planeGeometry args={[width - 0.08, 0.46]} />
-        <meshStandardMaterial
-          color="#0f172a"
-          emissive={screenColor}
-          emissiveIntensity={0.8}
-          roughness={0.15}
-        />
-      </mesh>
-    </group>
-  );
-}
-
 function ZonePad({
   zone,
   isActive,
@@ -338,21 +374,79 @@ function ZonePad({
 export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
   return (
     <group>
-      {/* === FLOOR & ARCHITECTURAL DIORAMA BASE (Expanded 34 x 24 Office) === */}
-      <mesh position={[0, -0.4, 0]} receiveShadow>
-        <boxGeometry args={[34.4, 0.8, 24.4]} />
+      {/* === FLOOR & ARCHITECTURAL DIORAMA BASE (Expanded 37.6 x 29.2 Office) === */}
+      <mesh position={[1.75, -0.4, 2.55]} receiveShadow>
+        <boxGeometry args={[37.9, 0.8, 29.2]} />
         <meshStandardMaterial color="#1e293b" roughness={0.7} />
       </mesh>
       {/* Modern bright concrete/carpet office floor */}
-      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[33.6, 23.6]} />
+      <mesh position={[1.75, 0.005, 2.55]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[37.1, 28.4]} />
         <meshStandardMaterial color="#475162" roughness={0.88} />
       </mesh>
-      {/* Wide light-wood central walkway */}
-      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[4.4, 23.0]} />
-        <meshStandardMaterial color="#d4b483" roughness={0.65} />
-      </mesh>
+      {/* Oscars-style VIP Red Carpet with gold trim & velvet rope stanchions */}
+      <group>
+        {/* Main crimson velvet red carpet */}
+        <mesh position={[0, 0.012, 2.55]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[4.4, 27.8]} />
+          <meshStandardMaterial color="#b91c1c" roughness={0.86} />
+        </mesh>
+        {/* Rich inner scarlet runner */}
+        <mesh position={[0, 0.014, 2.55]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[3.7, 27.6]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.84} />
+        </mesh>
+        {/* Gold Oscars border stripes on left & right */}
+        {[-2.06, 2.06].map((gx, i) => (
+          <mesh key={i} position={[gx, 0.016, 2.55]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.14, 27.8]} />
+            <meshStandardMaterial
+              color="#facc15"
+              emissive="#ca8a04"
+              emissiveIntensity={0.25}
+              metalness={0.55}
+              roughness={0.28}
+            />
+          </mesh>
+        ))}
+
+        {/* Gold VIP stanchion posts + red velvet ropes along the carpet edges */}
+        {[-2.38, 2.38].map((sx, sideIdx) => (
+          <group key={sideIdx}>
+            {[-2.0, 2.0, 6.0, 10.0, 14.0].map((sz, postIdx) => (
+              <group key={postIdx} position={[sx, 0, sz]}>
+                {/* Weighted gold base */}
+                <mesh position={[0, 0.03, 0]}>
+                  <cylinderGeometry args={[0.14, 0.16, 0.06, 10]} />
+                  <meshStandardMaterial color="#eab308" metalness={0.75} roughness={0.22} />
+                </mesh>
+                {/* Gold pole */}
+                <mesh position={[0, 0.48, 0]}>
+                  <cylinderGeometry args={[0.028, 0.028, 0.88, 8]} />
+                  <meshStandardMaterial color="#facc15" metalness={0.8} roughness={0.2} />
+                </mesh>
+                {/* Gold top sphere */}
+                <mesh position={[0, 0.95, 0]}>
+                  <sphereGeometry args={[0.055, 8, 8]} />
+                  <meshStandardMaterial color="#fde047" metalness={0.8} roughness={0.18} />
+                </mesh>
+              </group>
+            ))}
+
+            {/* Velvet ropes connecting front & rear pairs (leaving center walk-throughs open) */}
+            {[-0.0, 8.0, 12.0].map((rz, ropeIdx) => (
+              <mesh
+                key={ropeIdx}
+                position={[sx, 0.72, rz]}
+                rotation={[Math.PI / 2, 0, 0]}
+              >
+                <cylinderGeometry args={[0.026, 0.026, 3.9, 6]} />
+                <meshStandardMaterial color="#991b1b" roughness={0.75} />
+              </mesh>
+            ))}
+          </group>
+        ))}
+      </group>
 
       {/* Drone Landing Pad ("H") near center */}
       <group position={[0, 0.018, -5.4]}>
@@ -371,12 +465,12 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
       </group>
 
       {/* === CUTAWAY L-SHAPED GOOGLE CAMPUS WALLS === */}
-      <mesh position={[0, 3.0, -11.85]} receiveShadow castShadow>
-        <boxGeometry args={[34.4, 6.0, 0.4]} />
+      <mesh position={[1.75, 3.0, -11.85]} receiveShadow castShadow>
+        <boxGeometry args={[37.9, 6.0, 0.4]} />
         <meshStandardMaterial color="#e8eef5" roughness={0.75} />
       </mesh>
-      <mesh position={[-16.85, 3.0, 0]} receiveShadow castShadow>
-        <boxGeometry args={[0.4, 6.0, 24.4]} />
+      <mesh position={[-16.85, 3.0, 2.55]} receiveShadow castShadow>
+        <boxGeometry args={[0.4, 6.0, 29.2]} />
         <meshStandardMaterial color="#dce4ee" roughness={0.75} />
       </mesh>
 
@@ -402,6 +496,7 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         <boxGeometry args={[6.4, 3.1, 0.08]} />
         <meshStandardMaterial color="#2563eb" roughness={0.65} />
       </mesh>
+      <WallHeroSign position={[0.2, 4.18, -11.58]} />
       <group position={[-1.6, 2.25, -11.55]}>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.44, 0.44, 0.06, 20]} />
@@ -495,8 +590,8 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         imageUrl="/press/lu20.jpg"
       />
 
-      {/* Central white pillar with clock */}
-      <group position={[0, 0, -1.65]}>
+      {/* White pillar with clock (positioned to the right of the Oscars red carpet) */}
+      <group position={[3.6, 0, -1.65]}>
         <mesh position={[0, 3.0, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.2, 6.0, 1.2]} />
           <meshStandardMaterial color="#f1f5f9" roughness={0.65} />
@@ -681,17 +776,17 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         </group>
 
         {/* Tall Google-red storage locker */}
-        <mesh position={[15.5, 1.5, -7.1]} castShadow receiveShadow>
+        <mesh position={[18.9, 1.5, -7.1]} castShadow receiveShadow>
           <boxGeometry args={[1.1, 3.0, 2.4]} />
           <meshStandardMaterial color="#EA4335" roughness={0.45} />
         </mesh>
       </group>
 
       {/* ================================================================ */}
-      {/* 4. ZONA DEV LAB — "PROYECTOS" (Front-Right)                      */}
+      {/* 4. ZONA DEV LAB — "PROYECTOS" (Front-Right, pushed toward edge)  */}
       {/* ================================================================ */}
       <group>
-        <group position={[4.6, 0, 6.2]}>
+        <group position={[9.6, 0, 6.2]}>
           <mesh position={[0, 0.95, 0]} castShadow receiveShadow>
             <boxGeometry args={[1.4, 1.9, 3.7]} />
             <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.35} />
@@ -708,7 +803,7 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
           ))}
         </group>
 
-        <group position={[9.8, 0, 7.6]}>
+        <group position={[14.8, 0, 7.6]}>
           <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
             <boxGeometry args={[5.1, 0.12, 2.0]} />
             <meshStandardMaterial color="#c2854c" roughness={0.55} />
@@ -726,25 +821,25 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
           ))}
         </group>
 
-        <OfficeChair position={[9.8, 0, 6.0]} rotationY={0.15} color="#4285F4" />
+        <OfficeChair position={[14.8, 0, 6.0]} rotationY={0.15} color="#4285F4" />
       </group>
 
       {/* ================================================================ */}
-      {/* 4B. STREAMER & RECORDING STUDIO DESK (Mid-Right)                 */}
+      {/* 4B. STREAMER & RECORDING STUDIO DESK (Mid-Right, near edge)      */}
       {/* ================================================================ */}
       <group>
         {/* Studio acoustic rug with neon purple border */}
-        <mesh position={[13.2, 0.014, 0.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <mesh position={[17.2, 0.014, 0.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[5.2, 5.4]} />
           <meshStandardMaterial color="#1e1b4b" roughness={0.9} />
         </mesh>
-        <mesh position={[10.62, 0.02, 0.8]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh position={[14.62, 0.02, 0.8]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[0.08, 5.4]} />
           <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.5} />
         </mesh>
 
         {/* Main White Studio Desk (walkable topY = 0.88) */}
-        <group position={[13.7, 0, 0.8]}>
+        <group position={[17.7, 0, 0.8]}>
           {/* Tabletop */}
           <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
             <boxGeometry args={[2.2, 0.12, 3.7]} />
@@ -887,7 +982,7 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         </group>
 
         {/* Tall LED Ring Light on tripod behind the studio desk */}
-        <group position={[15.15, 0, 0.2]}>
+        <group position={[19.15, 0, 0.2]}>
           <mesh position={[0, 1.05, 0]} castShadow>
             <cylinderGeometry args={[0.024, 0.032, 2.1, 8]} />
             <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.35} />
@@ -908,7 +1003,7 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
         </group>
 
         {/* Purple Gaming / Streamer Chair facing the studio desk (+X) */}
-        <OfficeChair position={[11.6, 0, 0.8]} rotationY={Math.PI / 2} color="#7c3aed" />
+        <OfficeChair position={[15.6, 0, 0.8]} rotationY={Math.PI / 2} color="#7c3aed" />
       </group>
 
       {/* ================================================================ */}
@@ -962,7 +1057,7 @@ export function WorldMap({ activeZone, resetSignal }: WorldMapProps) {
       </group>
 
       {/* Lush office plants */}
-      <PottedPlant position={[1.1, 0, 0.4]} scale={1.3} potColor="#f8fafc" />
+      <PottedPlant position={[4.5, 0, -0.35]} scale={1.3} potColor="#f8fafc" />
       <PottedPlant position={[-15.4, 0, 2.6]} scale={1.2} potColor="#e2e8f0" />
       <PottedPlant position={[14.5, 0, 8.8]} scale={1.25} potColor="#f8fafc" />
       <PottedPlant position={[-15.4, 0, -5.8]} scale={1.2} potColor="#f8fafc" />

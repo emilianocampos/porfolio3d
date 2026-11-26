@@ -2,14 +2,15 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BOX_OBSTACLES, OFFICE_BOUNDS } from '../../data/portfolioData';
-import { characterState } from '../../state/inputState';
+import { characterState, realtimeEvents } from '../../state/inputState';
 
-type PropKind = 'ball' | 'box' | 'cone' | 'cube' | 'cylinder' | 'monitor' | 'vr' | 'guitar' | 'belt';
+type PropKind = 'ball' | 'box' | 'cone' | 'cube' | 'cylinder' | 'monitor' | 'vr' | 'guitar' | 'belt' | 'letter';
 
 interface PropConfig {
   id: string;
   kind: PropKind;
   color: string;
+  letter?: string;
   screenColor?: string;
   guitarStyle?: 'electric' | 'acoustic';
   rankBarColor?: string;
@@ -20,6 +21,104 @@ interface PropConfig {
   restitution: number;
   spawn: [number, number, number];
   spawnRotY?: number;
+}
+
+interface LetterStroke {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotZ?: number;
+}
+
+/**
+ * Real 3D sculpted "TECHNOLOGY FUTURE FONT" stencil-tech letters
+ * (segmented floating bars, futuristic stencil cutouts, wide sci-fi proportions)
+ */
+const LETTER_SHAPES: Record<string, LetterStroke[]> = {
+  // E: detached floating top bar + stencil gap + mid bar + lower-left stem & bottom bar
+  E: [
+    { x: 0.04, y: 0.44, w: 0.84, h: 0.19 },
+    { x: -0.34, y: -0.14, w: 0.2, h: 0.66 },
+    { x: 0.02, y: 0.08, w: 0.66, h: 0.17 },
+    { x: 0.05, y: -0.44, w: 0.82, h: 0.19 },
+  ],
+  // M: segmented left stem + angled stencil V + segmented right stem
+  M: [
+    { x: -0.4, y: -0.02, w: 0.19, h: 1.04 },
+    { x: 0.4, y: -0.02, w: 0.19, h: 1.04 },
+    { x: -0.16, y: 0.16, w: 0.17, h: 0.68, rotZ: 0.48 },
+    { x: 0.16, y: 0.16, w: 0.17, h: 0.68, rotZ: -0.48 },
+  ],
+  // I: futuristic stencil I — short floating top cap + gap + lower stem
+  I: [
+    { x: 0, y: 0.43, w: 0.24, h: 0.2 },
+    { x: 0, y: -0.14, w: 0.24, h: 0.78 },
+  ],
+  // C: detached top bar + stencil gap + left stem + bottom bar
+  C: [
+    { x: 0.05, y: 0.44, w: 0.82, h: 0.19 },
+    { x: -0.34, y: -0.13, w: 0.2, h: 0.7 },
+    { x: 0.05, y: -0.44, w: 0.82, h: 0.19 },
+  ],
+  // A: wide futuristic slanted legs + detached floating crossbar
+  A: [
+    { x: -0.25, y: 0, w: 0.2, h: 1.12, rotZ: -0.3 },
+    { x: 0.25, y: 0, w: 0.2, h: 1.12, rotZ: 0.3 },
+    { x: 0, y: -0.22, w: 0.44, h: 0.17 },
+  ],
+  // P: segmented left stem + detached top/right tech loop
+  P: [
+    { x: -0.35, y: -0.12, w: 0.2, h: 0.82 },
+    { x: 0.02, y: 0.44, w: 0.84, h: 0.19 },
+    { x: 0.34, y: 0.22, w: 0.19, h: 0.46 },
+    { x: 0.06, y: 0.02, w: 0.68, h: 0.18 },
+  ],
+  // O: signature detached top bar + stencil gap + sleek U-shaped base
+  O: [
+    { x: 0, y: 0.44, w: 0.84, h: 0.19 },
+    { x: -0.35, y: -0.13, w: 0.2, h: 0.7 },
+    { x: 0.35, y: -0.13, w: 0.2, h: 0.7 },
+    { x: 0, y: -0.44, w: 0.84, h: 0.19 },
+  ],
+  // S: wide futuristic segmented S with crisp stencil breaks
+  S: [
+    { x: 0.04, y: 0.44, w: 0.82, h: 0.18 },
+    { x: -0.32, y: 0.22, w: 0.2, h: 0.34 },
+    { x: 0, y: 0.0, w: 0.8, h: 0.18 },
+    { x: 0.32, y: -0.22, w: 0.2, h: 0.34 },
+    { x: -0.04, y: -0.44, w: 0.82, h: 0.18 },
+  ],
+};
+
+// Cyber/Tech neon accent palette (cyan, electric blue, indigo, violet)
+const NAME_BLOCK_COLORS = [
+  '#38bdf8',
+  '#6366f1',
+  '#22d3ee',
+  '#a855f7',
+  '#3b82f6',
+];
+
+function createNameBlocks(
+  word: string,
+  z: number,
+  colorOffset = 0,
+  y = 0.56
+): PropConfig[] {
+  const letters = word.split('');
+  const spacing = 1.2;
+  const startX = -((letters.length - 1) * spacing) / 2;
+  return letters.map((ch, i) => ({
+    id: `name-${word}-${i}`,
+    kind: 'letter',
+    letter: ch,
+    color: NAME_BLOCK_COLORS[(i + colorOffset) % NAME_BLOCK_COLORS.length],
+    size: 0.96,
+    mass: 0.72,
+    restitution: 0.42,
+    spawn: [startX + i * spacing, y, z],
+  }));
 }
 
 interface PropBody {
@@ -45,7 +144,7 @@ interface PropBody {
 
 const INITIAL_PROPS: PropConfig[] = [
   // === KNOCKABLE OFFICE MONITORS & VR HEADSET ON DESKS ===
-  // Dev Desk (Proyectos) â€” 2 monitors + VR headset
+  // Dev Desk (Proyectos, pushed toward right edge)
   {
     id: 'mon-dev-1',
     kind: 'monitor',
@@ -55,7 +154,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.62,
     mass: 0.85,
     restitution: 0.35,
-    spawn: [8.65, 1.24, 7.85],
+    spawn: [13.65, 1.24, 7.85],
     spawnRotY: Math.PI,
   },
   {
@@ -67,7 +166,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.56,
     mass: 0.75,
     restitution: 0.35,
-    spawn: [11.0, 1.24, 7.85],
+    spawn: [16.0, 1.24, 7.85],
     spawnRotY: Math.PI - 0.2,
   },
   {
@@ -77,7 +176,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.28,
     mass: 0.4,
     restitution: 0.45,
-    spawn: [11.9, 1.02, 7.3],
+    spawn: [16.9, 1.02, 7.3],
     spawnRotY: -0.5,
   },
   // Skills Desk â€” Pink ultrawide monitor
@@ -116,7 +215,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.62,
     mass: 0.85,
     restitution: 0.35,
-    spawn: [14.0, 1.24, 0.25],
+    spawn: [18.0, 1.24, 0.25],
     spawnRotY: -Math.PI / 2,
   },
   {
@@ -128,7 +227,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.56,
     mass: 0.75,
     restitution: 0.35,
-    spawn: [14.0, 1.24, 1.48],
+    spawn: [18.0, 1.24, 1.48],
     spawnRotY: -Math.PI / 2 - 0.22,
   },
 
@@ -191,7 +290,7 @@ const INITIAL_PROPS: PropConfig[] = [
 
   // === GOOGLE-COLORED GIANT YOGA / GYM BALLS (trimmed to 3 for mobile FPS) ===
   { id: 'ball-blue', kind: 'ball', color: '#4285F4', size: 0.52, mass: 0.7, restitution: 0.78, spawn: [-3.8, 0.52, -1.6] },
-  { id: 'ball-red', kind: 'ball', color: '#EA4335', size: 0.48, mass: 0.65, restitution: 0.78, spawn: [4.2, 0.48, -1.2] },
+  { id: 'ball-red', kind: 'ball', color: '#EA4335', size: 0.48, mass: 0.65, restitution: 0.78, spawn: [5.4, 0.48, -1.2] },
   { id: 'ball-yellow', kind: 'ball', color: '#FBBC05', size: 0.44, mass: 0.6, restitution: 0.8, spawn: [-3.0, 0.44, 4.4] },
 
   // === STACK OF CARDBOARD DELIVERY BOXES (trimmed to 2 for mobile FPS) ===
@@ -233,6 +332,10 @@ const INITIAL_PROPS: PropConfig[] = [
     spawn: [-2.1, 0.74, -9.2],
     spawnRotY: -0.22,
   },
+
+  // === DESTRUCTIBLE 3D TECH NAME BLOCKS: "EMI" stacked on top of "CAMPOS" ===
+  ...createNameBlocks('CAMPOS', 11.4, 2, 0.56),
+  ...createNameBlocks('EMI', 11.4, 0, 1.68),
 ];
 
 function createInitialBodies(): PropBody[] {
@@ -240,27 +343,31 @@ function createInitialBodies(): PropBody[] {
     const halfH =
       p.kind === 'guitar'
         ? 0.74
-        : p.kind === 'belt'
-          ? 0.08
-          : p.kind === 'monitor'
-            ? 0.36
-            : p.kind === 'vr'
-              ? 0.12
-              : p.kind === 'cylinder'
-                ? 0.28
-                : p.kind === 'cone'
-                  ? p.size
-                  : p.size * 0.5;
+        : p.kind === 'letter'
+          ? 0.56
+          : p.kind === 'belt'
+            ? 0.08
+            : p.kind === 'monitor'
+              ? 0.36
+              : p.kind === 'vr'
+                ? 0.12
+                : p.kind === 'cylinder'
+                  ? 0.28
+                  : p.kind === 'cone'
+                    ? p.size
+                    : p.size * 0.5;
     const radius =
       p.kind === 'guitar'
         ? 0.44
-        : p.kind === 'belt'
-          ? 0.34
-          : p.kind === 'ball'
-            ? p.size
-            : p.kind === 'monitor'
-              ? 0.45
-              : p.size * 0.62;
+        : p.kind === 'letter'
+          ? 0.48
+          : p.kind === 'belt'
+            ? 0.34
+            : p.kind === 'ball'
+              ? p.size
+              : p.kind === 'monitor'
+                ? 0.45
+                : p.size * 0.62;
     return {
       kind: p.kind,
       pinned: Boolean(p.pinned),
@@ -293,14 +400,33 @@ const GRAVITY = 20;
 export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
   const bodiesRef = useRef<PropBody[]>(createInitialBodies());
   const objectRefs = useRef<Array<THREE.Object3D | null>>([]);
+  const lastKickBroadcastRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     bodiesRef.current = createInitialBodies();
+    lastKickBroadcastRef.current = {};
   }, [resetSignal]);
 
   useFrame((_, rawDelta) => {
     const dt = Math.min(rawDelta, 0.04);
     const bodies = bodiesRef.current;
+
+    // Consume remote prop kicks from other visitors in real time
+    while (realtimeEvents.pendingPropKicks.length > 0) {
+      const ev = realtimeEvents.pendingPropKicks.shift()!;
+      const target = bodies[ev.idx];
+      if (!target) continue;
+      target.pinned = false;
+      target.x = ev.x;
+      target.y = ev.y;
+      target.z = ev.z;
+      target.vx = ev.vx;
+      target.vy = ev.vy;
+      target.vz = ev.vz;
+      target.avx = ev.avx;
+      target.avy = ev.avy;
+      target.avz = ev.avz;
+    }
 
     const px = characterState.x;
     const py = characterState.y;
@@ -309,9 +435,11 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
     const pvz = characterState.vz;
     const pSpeed = Math.hypot(pvx, pvz);
 
-    // 0. Check if player (or any flying prop) smashes the BJJ Belt Wall Rack!
-    let rackHit = Math.abs(px - 0.9) < 1.55 && pz < -9.75 && (py > 0.12 || pSpeed > 1.2);
-    if (!rackHit) {
+    // 0. Check if player, flying prop, or remote visitor smashes the BJJ Belt Wall Rack!
+    const remoteRackVx = realtimeEvents.pendingRackSmash;
+    realtimeEvents.pendingRackSmash = null;
+    let localRackHit = Math.abs(px - 0.9) < 1.55 && pz < -9.75 && (py > 0.12 || pSpeed > 1.2);
+    if (!localRackHit && remoteRackVx === null) {
       for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i];
         if (b.pinned) continue;
@@ -321,19 +449,20 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
           b.y > 0.75 &&
           Math.hypot(b.vx, b.vy, b.vz) > 1.8
         ) {
-          rackHit = true;
+          localRackHit = true;
           break;
         }
       }
     }
-    if (rackHit) {
+    if (localRackHit || remoteRackVx !== null) {
+      const impulseVx = remoteRackVx !== null ? remoteRackVx : pvx;
       let beltIdx = 0;
       for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i];
         if (b.pinned && b.kind === 'belt') {
           b.pinned = false;
           b.z = -10.85;
-          b.vx = (beltIdx - 2) * 1.45 + (pvx * 0.35);
+          b.vx = (beltIdx - 2) * 1.45 + impulseVx * 0.35;
           b.vy = 2.6 + beltIdx * 0.45;
           b.vz = 4.2 + (beltIdx % 3) * 1.1;
           b.avx = 5.5 + beltIdx * 1.2;
@@ -341,6 +470,9 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
           b.avz = (beltIdx - 2) * 2.2;
           beltIdx++;
         }
+      }
+      if (beltIdx > 0 && localRackHit && remoteRackVx === null) {
+        realtimeEvents.sendRackSmash?.(pvx);
       }
     }
 
@@ -365,13 +497,29 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
       b.ry += b.avy * dt;
       b.rz += b.avz * dt;
 
-      // Determine support surface (floor = 0 or tabletop under prop)
+      // Determine support surface (floor = 0, tabletop, or stacked letter block under prop)
       let supportY = 0;
       for (const box of BOX_OBSTACLES) {
         const insideX = b.x >= box.minX - 0.1 && b.x <= box.maxX + 0.1;
         const insideZ = b.z >= box.minZ - 0.1 && b.z <= box.maxZ + 0.1;
         if (insideX && insideZ && prevBottom >= box.topY - 0.18) {
           supportY = Math.max(supportY, box.topY);
+        }
+      }
+      if (b.kind === 'letter') {
+        for (let k = 0; k < bodies.length; k++) {
+          if (k === i) continue;
+          const other = bodies[k];
+          if (other.kind !== 'letter') continue;
+          const otherTop = other.y + other.halfH;
+          if (
+            Math.abs(b.x - other.x) < 0.88 &&
+            Math.abs(b.z - other.z) < 0.52 &&
+            prevBottom >= otherTop - 0.16 &&
+            b.y > other.y
+          ) {
+            supportY = Math.max(supportY, otherTop);
+          }
         }
       }
 
@@ -414,6 +562,25 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
         b.avx += nz * kick * 1.6;
         b.avz -= nx * kick * 1.6;
         b.avy += (nx - nz) * 2.5;
+
+        // Broadcast kicked prop velocity/spin to other visitors (throttled per prop)
+        const now = performance.now();
+        const lastSent = lastKickBroadcastRef.current[i] ?? 0;
+        if (now - lastSent > 110) {
+          lastKickBroadcastRef.current[i] = now;
+          realtimeEvents.sendPropKick?.({
+            idx: i,
+            x: b.x,
+            y: b.y,
+            z: b.z,
+            vx: b.vx,
+            vy: b.vy,
+            vz: b.vz,
+            avx: b.avx,
+            avy: b.avy,
+            avz: b.avz,
+          });
+        }
       }
 
       // Side-wall collision with furniture ONLY when prop is below the tabletop
@@ -523,197 +690,6 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
       {INITIAL_PROPS.map((prop, idx) => {
         if (prop.kind === 'monitor') {
           const width = prop.wide ? 1.25 : 0.88;
-          if (prop.kind === 'guitar') {
-            const isElectric = prop.guitarStyle === 'electric';
-            const bodyColor = prop.color;
-            const sideColor = isElectric ? '#b91c1c' : '#854d0e';
-            const neckColor = isElectric ? '#e7c396' : '#78350f';
-            return (
-              <group
-                key={prop.id}
-                ref={(el) => {
-                  objectRefs.current[idx] = el;
-                }}
-                position={prop.spawn}
-                rotation={[0, prop.spawnRotY ?? 0, 0]}
-              >
-                {/* === BLACK METAL TRIPOD STAND (bottom at y = -0.74) === */}
-                {/* Central vertical pole */}
-                <mesh position={[0, -0.02, -0.14]} castShadow>
-                  <cylinderGeometry args={[0.022, 0.026, 0.94, 8]} />
-                  <meshStandardMaterial color="#1e293b" metalness={0.65} roughness={0.35} />
-                </mesh>
-                {/* 3 splayed tripod legs */}
-                <mesh position={[0, -0.58, -0.28]} rotation={[-0.58, 0, 0]} castShadow>
-                  <cylinderGeometry args={[0.018, 0.018, 0.42, 8]} />
-                  <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.4} />
-                </mesh>
-                <mesh position={[-0.17, -0.58, -0.02]} rotation={[0.42, 0, 0.52]} castShadow>
-                  <cylinderGeometry args={[0.018, 0.018, 0.44, 8]} />
-                  <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.4} />
-                </mesh>
-                <mesh position={[0.17, -0.58, -0.02]} rotation={[0.42, 0, -0.52]} castShadow>
-                  <cylinderGeometry args={[0.018, 0.018, 0.44, 8]} />
-                  <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.4} />
-                </mesh>
-                {/* Tripod hub collar */}
-                <mesh position={[0, -0.42, -0.14]}>
-                  <cylinderGeometry args={[0.042, 0.042, 0.07, 10]} />
-                  <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.4} />
-                </mesh>
-                {/* Lower cradle arms */}
-                <mesh position={[-0.12, -0.44, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
-                  <cylinderGeometry args={[0.016, 0.016, 0.24, 8]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.7} />
-                </mesh>
-                <mesh position={[0.12, -0.44, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
-                  <cylinderGeometry args={[0.016, 0.016, 0.24, 8]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.7} />
-                </mesh>
-                {/* Upper neck yoke */}
-                <mesh position={[0, 0.42, -0.06]} rotation={[Math.PI / 2, 0, 0]}>
-                  <torusGeometry args={[0.065, 0.014, 8, 12, Math.PI]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.7} />
-                </mesh>
-
-                {/* === GUITAR RESTING ON TRIPOD (slightly reclined) === */}
-                <group position={[0, 0.06, 0.04]} rotation={[-0.14, 0, 0]}>
-                  {/* Lower bout */}
-                  <mesh
-                    position={[0, -0.32, 0]}
-                    rotation={[Math.PI / 2, 0, 0]}
-                    castShadow
-                  >
-                    <cylinderGeometry
-                      args={[
-                        isElectric ? 0.2 : 0.23,
-                        isElectric ? 0.2 : 0.23,
-                        isElectric ? 0.065 : 0.11,
-                        18,
-                      ]}
-                    />
-                    <meshStandardMaterial
-                      color={bodyColor}
-                      roughness={isElectric ? 0.2 : 0.55}
-                      metalness={isElectric ? 0.25 : 0.05}
-                    />
-                  </mesh>
-                  {/* Upper bout */}
-                  <mesh
-                    position={[0, -0.1, 0]}
-                    rotation={[Math.PI / 2, 0, 0]}
-                    castShadow
-                  >
-                    <cylinderGeometry
-                      args={[
-                        isElectric ? 0.165 : 0.175,
-                        isElectric ? 0.165 : 0.175,
-                        isElectric ? 0.065 : 0.11,
-                        18,
-                      ]}
-                    />
-                    <meshStandardMaterial
-                      color={bodyColor}
-                      roughness={isElectric ? 0.2 : 0.55}
-                      metalness={isElectric ? 0.25 : 0.05}
-                    />
-                  </mesh>
-                  {/* Center body waist fill */}
-                  <mesh position={[0, -0.21, 0]} castShadow>
-                    <boxGeometry args={[0.25, 0.22, isElectric ? 0.064 : 0.108]} />
-                    <meshStandardMaterial
-                      color={sideColor}
-                      roughness={isElectric ? 0.22 : 0.6}
-                      metalness={isElectric ? 0.2 : 0.05}
-                    />
-                  </mesh>
-
-                  {isElectric ? (
-                    <>
-                      {/* White pickguard */}
-                      <mesh position={[0.03, -0.22, 0.036]}>
-                        <boxGeometry args={[0.18, 0.26, 0.008]} />
-                        <meshStandardMaterial color="#f8fafc" roughness={0.3} />
-                      </mesh>
-                      {/* 3 single-coil pickups */}
-                      <mesh position={[0, -0.15, 0.044]}>
-                        <boxGeometry args={[0.11, 0.025, 0.012]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-                      </mesh>
-                      <mesh position={[0, -0.22, 0.044]}>
-                        <boxGeometry args={[0.11, 0.025, 0.012]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-                      </mesh>
-                      <mesh position={[0, -0.29, 0.044]}>
-                        <boxGeometry args={[0.11, 0.025, 0.012]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-                      </mesh>
-                      {/* Metallic bridge */}
-                      <mesh position={[0, -0.37, 0.042]}>
-                        <boxGeometry args={[0.12, 0.045, 0.014]} />
-                        <meshStandardMaterial color="#cbd5e1" metalness={0.85} roughness={0.2} />
-                      </mesh>
-                    </>
-                  ) : (
-                    <>
-                      {/* Acoustic rosette & dark soundhole */}
-                      <mesh position={[0, -0.18, 0.057]}>
-                        <ringGeometry args={[0.062, 0.078, 18]} />
-                        <meshStandardMaterial color="#fef3c7" roughness={0.5} />
-                      </mesh>
-                      <mesh position={[0, -0.18, 0.058]}>
-                        <circleGeometry args={[0.062, 18]} />
-                        <meshStandardMaterial color="#1c1917" roughness={0.95} />
-                      </mesh>
-                      {/* Acoustic wood bridge */}
-                      <mesh position={[0, -0.34, 0.06]}>
-                        <boxGeometry args={[0.15, 0.036, 0.016]} />
-                        <meshStandardMaterial color="#292524" roughness={0.7} />
-                      </mesh>
-                    </>
-                  )}
-
-                  {/* Neck */}
-                  <mesh position={[0, 0.27, 0.01]} castShadow>
-                    <boxGeometry args={[0.062, 0.56, 0.036]} />
-                    <meshStandardMaterial color={neckColor} roughness={0.5} />
-                  </mesh>
-                  {/* Fretboard */}
-                  <mesh position={[0, 0.25, 0.032]}>
-                    <boxGeometry args={[0.056, 0.56, 0.012]} />
-                    <meshStandardMaterial color="#291d16" roughness={0.75} />
-                  </mesh>
-                  {/* Strings highlight strip */}
-                  <mesh position={[0, 0.14, 0.042]}>
-                    <boxGeometry args={[0.038, 0.88, 0.004]} />
-                    <meshStandardMaterial color="#e2e8f0" metalness={0.85} roughness={0.2} />
-                  </mesh>
-                  {/* Headstock */}
-                  <mesh position={[0, 0.61, 0.008]} castShadow>
-                    <boxGeometry args={[0.095, 0.16, 0.032]} />
-                    <meshStandardMaterial
-                      color={isElectric ? '#e7c396' : '#451a03'}
-                      roughness={0.45}
-                    />
-                  </mesh>
-                  {/* Tuning pegs */}
-                  {[-0.04, 0.0, 0.04].map((dy, pIdx) => (
-                    <group key={pIdx}>
-                      <mesh position={[-0.058, 0.61 + dy, 0.008]}>
-                        <boxGeometry args={[0.028, 0.018, 0.018]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.85} roughness={0.2} />
-                      </mesh>
-                      <mesh position={[0.058, 0.61 + dy, 0.008]}>
-                        <boxGeometry args={[0.028, 0.018, 0.018]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.85} roughness={0.2} />
-                      </mesh>
-                    </group>
-                  ))}
-                </group>
-              </group>
-            );
-          }
-
           return (
             <group
               key={prop.id}
@@ -747,6 +723,57 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
                   roughness={0.15}
                 />
               </mesh>
+            </group>
+          );
+        }
+
+        if (prop.kind === 'letter') {
+          const strokes = LETTER_SHAPES[prop.letter ?? 'E'] ?? LETTER_SHAPES.E;
+          return (
+            <group
+              key={prop.id}
+              ref={(el) => {
+                objectRefs.current[idx] = el;
+              }}
+              position={prop.spawn}
+              rotation={[0, prop.spawnRotY ?? 0, 0]}
+            >
+              {strokes.map((s, sIdx) => (
+                <group
+                  key={sIdx}
+                  position={[s.x, s.y, 0]}
+                  rotation={[0, 0, s.rotZ ?? 0]}
+                >
+                  {/* Sleek dark-titanium 3D letter frame */}
+                  <mesh>
+                    <boxGeometry args={[s.w, s.h, 0.34]} />
+                    <meshStandardMaterial
+                      color="#0f172a"
+                      metalness={0.78}
+                      roughness={0.2}
+                    />
+                  </mesh>
+                  {/* Crisp futuristic white-tech face with subtle neon rim */}
+                  <mesh position={[0, 0, 0.175]}>
+                    <boxGeometry args={[s.w * 0.82, s.h * 0.86, 0.026]} />
+                    <meshStandardMaterial
+                      color="#f8fafc"
+                      emissive={prop.color}
+                      emissiveIntensity={0.75}
+                      roughness={0.15}
+                    />
+                  </mesh>
+                  <mesh position={[0, 0, -0.175]}>
+                    <boxGeometry args={[s.w * 0.82, s.h * 0.86, 0.026]} />
+                    <meshStandardMaterial
+                      color="#f8fafc"
+                      emissive={prop.color}
+                      emissiveIntensity={0.6}
+                      roughness={0.15}
+                    />
+                  </mesh>
+                </group>
+              ))}
             </group>
           );
         }
@@ -800,197 +827,6 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
         }
 
         if (prop.kind === 'vr') {
-          if (prop.kind === 'guitar') {
-            const isElectric = prop.guitarStyle === 'electric';
-            const bodyColor = prop.color;
-            const sideColor = isElectric ? '#b91c1c' : '#854d0e';
-            const neckColor = isElectric ? '#e7c396' : '#78350f';
-            return (
-              <group
-                key={prop.id}
-                ref={(el) => {
-                  objectRefs.current[idx] = el;
-                }}
-                position={prop.spawn}
-                rotation={[0, prop.spawnRotY ?? 0, 0]}
-              >
-                {/* === BLACK METAL TRIPOD STAND (bottom at y = -0.74) === */}
-                {/* Central vertical pole */}
-                <mesh position={[0, -0.02, -0.14]} castShadow>
-                  <cylinderGeometry args={[0.022, 0.026, 0.94, 8]} />
-                  <meshStandardMaterial color="#1e293b" metalness={0.65} roughness={0.35} />
-                </mesh>
-                {/* 3 splayed tripod legs */}
-                <mesh position={[0, -0.58, -0.28]} rotation={[-0.58, 0, 0]} castShadow>
-                  <cylinderGeometry args={[0.018, 0.018, 0.42, 8]} />
-                  <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.4} />
-                </mesh>
-                <mesh position={[-0.17, -0.58, -0.02]} rotation={[0.42, 0, 0.52]} castShadow>
-                  <cylinderGeometry args={[0.018, 0.018, 0.44, 8]} />
-                  <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.4} />
-                </mesh>
-                <mesh position={[0.17, -0.58, -0.02]} rotation={[0.42, 0, -0.52]} castShadow>
-                  <cylinderGeometry args={[0.018, 0.018, 0.44, 8]} />
-                  <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.4} />
-                </mesh>
-                {/* Tripod hub collar */}
-                <mesh position={[0, -0.42, -0.14]}>
-                  <cylinderGeometry args={[0.042, 0.042, 0.07, 10]} />
-                  <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.4} />
-                </mesh>
-                {/* Lower cradle arms */}
-                <mesh position={[-0.12, -0.44, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
-                  <cylinderGeometry args={[0.016, 0.016, 0.24, 8]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.7} />
-                </mesh>
-                <mesh position={[0.12, -0.44, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
-                  <cylinderGeometry args={[0.016, 0.016, 0.24, 8]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.7} />
-                </mesh>
-                {/* Upper neck yoke */}
-                <mesh position={[0, 0.42, -0.06]} rotation={[Math.PI / 2, 0, 0]}>
-                  <torusGeometry args={[0.065, 0.014, 8, 12, Math.PI]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.7} />
-                </mesh>
-
-                {/* === GUITAR RESTING ON TRIPOD (slightly reclined) === */}
-                <group position={[0, 0.06, 0.04]} rotation={[-0.14, 0, 0]}>
-                  {/* Lower bout */}
-                  <mesh
-                    position={[0, -0.32, 0]}
-                    rotation={[Math.PI / 2, 0, 0]}
-                    castShadow
-                  >
-                    <cylinderGeometry
-                      args={[
-                        isElectric ? 0.2 : 0.23,
-                        isElectric ? 0.2 : 0.23,
-                        isElectric ? 0.065 : 0.11,
-                        18,
-                      ]}
-                    />
-                    <meshStandardMaterial
-                      color={bodyColor}
-                      roughness={isElectric ? 0.2 : 0.55}
-                      metalness={isElectric ? 0.25 : 0.05}
-                    />
-                  </mesh>
-                  {/* Upper bout */}
-                  <mesh
-                    position={[0, -0.1, 0]}
-                    rotation={[Math.PI / 2, 0, 0]}
-                    castShadow
-                  >
-                    <cylinderGeometry
-                      args={[
-                        isElectric ? 0.165 : 0.175,
-                        isElectric ? 0.165 : 0.175,
-                        isElectric ? 0.065 : 0.11,
-                        18,
-                      ]}
-                    />
-                    <meshStandardMaterial
-                      color={bodyColor}
-                      roughness={isElectric ? 0.2 : 0.55}
-                      metalness={isElectric ? 0.25 : 0.05}
-                    />
-                  </mesh>
-                  {/* Center body waist fill */}
-                  <mesh position={[0, -0.21, 0]} castShadow>
-                    <boxGeometry args={[0.25, 0.22, isElectric ? 0.064 : 0.108]} />
-                    <meshStandardMaterial
-                      color={sideColor}
-                      roughness={isElectric ? 0.22 : 0.6}
-                      metalness={isElectric ? 0.2 : 0.05}
-                    />
-                  </mesh>
-
-                  {isElectric ? (
-                    <>
-                      {/* White pickguard */}
-                      <mesh position={[0.03, -0.22, 0.036]}>
-                        <boxGeometry args={[0.18, 0.26, 0.008]} />
-                        <meshStandardMaterial color="#f8fafc" roughness={0.3} />
-                      </mesh>
-                      {/* 3 single-coil pickups */}
-                      <mesh position={[0, -0.15, 0.044]}>
-                        <boxGeometry args={[0.11, 0.025, 0.012]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-                      </mesh>
-                      <mesh position={[0, -0.22, 0.044]}>
-                        <boxGeometry args={[0.11, 0.025, 0.012]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-                      </mesh>
-                      <mesh position={[0, -0.29, 0.044]}>
-                        <boxGeometry args={[0.11, 0.025, 0.012]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.25} />
-                      </mesh>
-                      {/* Metallic bridge */}
-                      <mesh position={[0, -0.37, 0.042]}>
-                        <boxGeometry args={[0.12, 0.045, 0.014]} />
-                        <meshStandardMaterial color="#cbd5e1" metalness={0.85} roughness={0.2} />
-                      </mesh>
-                    </>
-                  ) : (
-                    <>
-                      {/* Acoustic rosette & dark soundhole */}
-                      <mesh position={[0, -0.18, 0.057]}>
-                        <ringGeometry args={[0.062, 0.078, 18]} />
-                        <meshStandardMaterial color="#fef3c7" roughness={0.5} />
-                      </mesh>
-                      <mesh position={[0, -0.18, 0.058]}>
-                        <circleGeometry args={[0.062, 18]} />
-                        <meshStandardMaterial color="#1c1917" roughness={0.95} />
-                      </mesh>
-                      {/* Acoustic wood bridge */}
-                      <mesh position={[0, -0.34, 0.06]}>
-                        <boxGeometry args={[0.15, 0.036, 0.016]} />
-                        <meshStandardMaterial color="#292524" roughness={0.7} />
-                      </mesh>
-                    </>
-                  )}
-
-                  {/* Neck */}
-                  <mesh position={[0, 0.27, 0.01]} castShadow>
-                    <boxGeometry args={[0.062, 0.56, 0.036]} />
-                    <meshStandardMaterial color={neckColor} roughness={0.5} />
-                  </mesh>
-                  {/* Fretboard */}
-                  <mesh position={[0, 0.25, 0.032]}>
-                    <boxGeometry args={[0.056, 0.56, 0.012]} />
-                    <meshStandardMaterial color="#291d16" roughness={0.75} />
-                  </mesh>
-                  {/* Strings highlight strip */}
-                  <mesh position={[0, 0.14, 0.042]}>
-                    <boxGeometry args={[0.038, 0.88, 0.004]} />
-                    <meshStandardMaterial color="#e2e8f0" metalness={0.85} roughness={0.2} />
-                  </mesh>
-                  {/* Headstock */}
-                  <mesh position={[0, 0.61, 0.008]} castShadow>
-                    <boxGeometry args={[0.095, 0.16, 0.032]} />
-                    <meshStandardMaterial
-                      color={isElectric ? '#e7c396' : '#451a03'}
-                      roughness={0.45}
-                    />
-                  </mesh>
-                  {/* Tuning pegs */}
-                  {[-0.04, 0.0, 0.04].map((dy, pIdx) => (
-                    <group key={pIdx}>
-                      <mesh position={[-0.058, 0.61 + dy, 0.008]}>
-                        <boxGeometry args={[0.028, 0.018, 0.018]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.85} roughness={0.2} />
-                      </mesh>
-                      <mesh position={[0.058, 0.61 + dy, 0.008]}>
-                        <boxGeometry args={[0.028, 0.018, 0.018]} />
-                        <meshStandardMaterial color="#e2e8f0" metalness={0.85} roughness={0.2} />
-                      </mesh>
-                    </group>
-                  ))}
-                </group>
-              </group>
-            );
-          }
-
           return (
             <group
               key={prop.id}

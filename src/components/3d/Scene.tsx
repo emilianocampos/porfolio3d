@@ -12,7 +12,9 @@ interface SceneProps {
   activeZone: InteractiveZone | null;
   modalOpen: boolean;
   resetPropsSignal: number;
+  localColor: string;
   remoteIds: string[];
+  remoteColors: Record<string, string>;
   localEmote: { emoji: string; key: number } | null;
   remoteEmotes: Record<string, { emoji: string; key: number }>;
   onZoneChange: (zone: InteractiveZone | null) => void;
@@ -30,7 +32,9 @@ export function Scene({
   activeZone,
   modalOpen,
   resetPropsSignal,
+  localColor,
   remoteIds,
+  remoteColors,
   localEmote,
   remoteEmotes,
   onZoneChange,
@@ -43,13 +47,13 @@ export function Scene({
       shadows
       // Pause WebGL render loop while a modal is open to save mobile battery & keep scrolling smooth
       frameloop={modalOpen ? 'demand' : 'always'}
-      dpr={isMobile ? [1, 1.25] : [1, 1.5]}
+      dpr={isMobile ? [1, 1.15] : [1, 1.25]}
       gl={{
         antialias: !isMobile,
         powerPreference: 'high-performance',
         stencil: false,
       }}
-      camera={{ position: [5.2, 10.6, 13.8], fov: isMobile ? 46 : 42, near: 0.2, far: 90 }}
+      camera={{ position: [0, 9.5, 6.2], fov: isMobile ? 46 : 42, near: 0.2, far: 90 }}
       className="canvas-fullscreen"
     >
       <color attach="background" args={['#111827']} />
@@ -84,38 +88,35 @@ export function Scene({
         </Environment>
       )}
 
-      {/* Main office lighting (lighter single-pass setup on mobile) */}
-      <hemisphereLight args={['#f8fafc', '#334155', isMobile ? 1.15 : 0.7]} />
+      {/* Main office lighting (single-pass shadow map for locked 60fps while walking) */}
+      <hemisphereLight args={['#f8fafc', '#334155', isMobile ? 1.15 : 0.85]} />
       <directionalLight
         position={[-10, 19, -5]}
         intensity={isMobile ? 1.55 : 1.45}
         color="#fff4d6"
         castShadow
-        shadow-mapSize={isMobile ? [512, 512] : [1024, 1024]}
-        shadow-camera-left={-24}
-        shadow-camera-right={24}
-        shadow-camera-top={24}
-        shadow-camera-bottom={-24}
+        shadow-mapSize={[512, 512]}
+        shadow-camera-left={-26}
+        shadow-camera-right={26}
+        shadow-camera-top={26}
+        shadow-camera-bottom={-26}
         shadow-bias={-0.0008}
       />
       {!isMobile && (
-        <>
-          <directionalLight position={[12, 14, 14]} intensity={0.5} color="#dbeafe" />
-          <pointLight
-            position={[-6.2, 3.2, -5.5]}
-            intensity={14}
-            distance={14}
-            color="#fde68a"
-          />
-        </>
+        <directionalLight position={[12, 14, 14]} intensity={0.45} color="#dbeafe" />
       )}
 
       <WorldMap activeZone={activeZone} resetSignal={resetPropsSignal} />
       <PhysicsProps resetSignal={resetPropsSignal} />
-      <RemotePlayers remoteIds={remoteIds} remoteEmotes={remoteEmotes} />
+      <RemotePlayers
+        remoteIds={remoteIds}
+        remoteColors={remoteColors}
+        remoteEmotes={remoteEmotes}
+      />
       <WaypointTracker />
       <Character
         disabled={modalOpen}
+        color={localColor}
         localEmote={localEmote}
         onZoneChange={onZoneChange}
         onArriveAutoWalk={onArriveAutoWalk}

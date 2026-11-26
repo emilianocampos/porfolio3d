@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import { characterState, remotePlayersMap } from '../state/inputState';
-
-const VISITOR_COLORS = [
-  '#ef4444',
-  '#10b981',
-  '#f59e0b',
-  '#a855f7',
-  '#ec4899',
-  '#06b6d4',
-];
+import {
+  characterState,
+  type DroneSmashEvent,
+  type PropKickEvent,
+  realtimeEvents,
+  remotePlayersMap,
+} from '../state/inputState';
+import { ROBOT_PALETTE } from '../components/3d/RobotModel';
 
 export function useRealtimeOffice() {
   const [onlineCount, setOnlineCount] = useState(1);
+  const [localColor, setLocalColor] = useState<string>(ROBOT_PALETTE[0].torso);
   const [remoteIds, setRemoteIds] = useState<string[]>([]);
+  const [remoteColors, setRemoteColors] = useState<Record<string, string>>({});
   const [localEmote, setLocalEmote] = useState<{ emoji: string; key: number } | null>(null);
   const [remoteEmotes, setRemoteEmotes] = useState<Record<string, { emoji: string; key: number }>>({});
 
@@ -26,9 +26,8 @@ export function useRealtimeOffice() {
       ? crypto.randomUUID()
       : `v-${Math.random().toString(36).slice(2, 9)}`
   );
-  const myColorRef = useRef<string>(
-    VISITOR_COLORS[Math.floor(Math.random() * VISITOR_COLORS.length)]
-  );
+  const myJoinedAtRef = useRef<number>(Date.now());
+  const myColorRef = useRef<string>(ROBOT_PALETTE[0].torso);
   const myNameRef = useRef<string>(
     `Visitante #${Math.floor(10 + Math.random() * 89)}`
   );
@@ -50,36 +49,63 @@ export function useRealtimeOffice() {
       const keys = Object.keys(state);
       setOnlineCount(Math.max(1, keys.length));
 
+      // Sort all connected users deterministically by join timestamp (then ID)
+      // so Player #1 is always Robot #1 (Blue) on EVERY screen, Player #2 is Red, etc.
+      const orderedEntries = keys
+        .map((key) => {
+          const meta =
+            (state[key]?.[0] as
+              | { name?: string; joinedAt?: number }
+              | undefined) ?? {};
+          return {
+            id: key,
+            name: meta.name ?? 'Visitante',
+            joinedAt: typeof meta.joinedAt === 'number' ? meta.joinedAt : Number.MAX_SAFE_INTEGER,
+          };
+        })
+        .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id));
+
+      const nextRemoteColors: Record<string, string> = {};
+
+      orderedEntries.forEach((entry, index) => {
+        const assignedColor =
+          ROBOT_PALETTE[index % ROBOT_PALETTE.length].torso;
+
+        if (entry.id === myId) {
+          if (myColorRef.current !== assignedColor) {
+            myColorRef.current = assignedColor;
+            setLocalColor(assignedColor);
+          }
+          return;
+        }
+
+        nextRemoteColors[entry.id] = assignedColor;
+        const existing = remotePlayersMap.get(entry.id);
+        if (existing) {
+          existing.color = assignedColor;
+          existing.name = entry.name;
+        } else {
+          remotePlayersMap.set(entry.id, {
+            id: entry.id,
+            name: entry.name,
+            color: assignedColor,
+            x: 0,
+            y: 0,
+            z: -5.4,
+            rotY: 0,
+          });
+        }
+      });
+
       // Remove disconnected players
-      let changed = false;
       for (const existingId of Array.from(remotePlayersMap.keys())) {
         if (!keys.includes(existingId)) {
           remotePlayersMap.delete(existingId);
-          changed = true;
         }
       }
 
-      // Ensure new players appear immediately at spawn
-      for (const key of keys) {
-        if (key === myId) continue;
-        if (!remotePlayersMap.has(key)) {
-          const meta = (state[key]?.[0] as { name?: string; color?: string } | undefined) ?? {};
-          remotePlayersMap.set(key, {
-            id: key,
-            name: meta.name ?? 'Visitante',
-            color: meta.color ?? '#10b981',
-            x: 0,
-            y: 0,
-            z: 2.2,
-            rotY: 0,
-          });
-          changed = true;
-        }
-      }
-
-      if (changed) {
-        setRemoteIds(Array.from(remotePlayersMap.keys()));
-      }
+      setRemoteColors(nextRemoteColors);
+      setRemoteIds(Array.from(remotePlayersMap.keys()));
     };
 
     channel
@@ -129,14 +155,77 @@ export function useRealtimeOffice() {
           });
         }, 2600);
       })
+      .on('broadcast', { event: 'drone_smash' }, ({ payload }) => {
+        if (!payload || payload.sender === myId) return;
+        realtimeEvents.pendingDroneSmash = {
+          x: Number(payload.x ?? 0),
+          y: Number(payload.y ?? 2.85),
+          z: Number(payload.z ?? 0),
+          vx: Number(payload.vx ?? 0),
+          vz: Number(payload.vz ?? 0),
+        };
+      })
+      .on('broadcast', { event: 'rack_smash' }, ({ payload }) => {
+        if (!payload || payload.sender === myId) return;
+        realtimeEvents.pendingRackSmash = Number(payload.vx ?? 0);
+      })
+      .on('broadcast', { event: 'prop_kick' }, ({ payload }) => {
+        if (!payload || payload.sender === myId) return;
+        realtimeEvents.pendingPropKicks.push({
+          idx: Number(payload.idx),
+          x: Number(payload.x),
+          y: Number(payload.y),
+          z: Number(payload.z),
+          vx: Number(payload.vx),
+          vy: Number(payload.vy),
+          vz: Number(payload.vz),
+          avx: Number(payload.avx ?? 0),
+          avy: Number(payload.avy ?? 0),
+          avz: Number(payload.avz ?? 0),
+        });
+      })
+      .on('broadcast', { event: 'world_reset' }, ({ payload }) => {
+        if (!payload || payload.sender === myId) return;
+        realtimeEvents.onRemoteReset?.();
+      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.track({
             name: myNameRef.current,
-            color: myColorRef.current,
+            joinedAt: myJoinedAtRef.current,
           });
         }
       });
+
+    // Expose low-latency world-event broadcasters for PatrolDrone, PhysicsProps & Reset
+    realtimeEvents.sendDroneSmash = (ev: DroneSmashEvent) => {
+      channel.send({
+        type: 'broadcast',
+        event: 'drone_smash',
+        payload: { sender: myId, ...ev },
+      });
+    };
+    realtimeEvents.sendRackSmash = (vx: number) => {
+      channel.send({
+        type: 'broadcast',
+        event: 'rack_smash',
+        payload: { sender: myId, vx },
+      });
+    };
+    realtimeEvents.sendPropKick = (ev: PropKickEvent) => {
+      channel.send({
+        type: 'broadcast',
+        event: 'prop_kick',
+        payload: { sender: myId, ...ev },
+      });
+    };
+    realtimeEvents.sendWorldReset = () => {
+      channel.send({
+        type: 'broadcast',
+        event: 'world_reset',
+        payload: { sender: myId },
+      });
+    };
 
     // Broadcast local character position ~10 times/sec when moving
     let lastSentX = characterState.x;
@@ -170,6 +259,10 @@ export function useRealtimeOffice() {
 
     return () => {
       window.clearInterval(intervalId);
+      realtimeEvents.sendDroneSmash = null;
+      realtimeEvents.sendRackSmash = null;
+      realtimeEvents.sendPropKick = null;
+      realtimeEvents.sendWorldReset = null;
       remotePlayersMap.clear();
       setRemoteIds([]);
       supabase?.removeChannel(channel);
@@ -200,7 +293,9 @@ export function useRealtimeOffice() {
 
   return {
     onlineCount,
+    localColor,
     remoteIds,
+    remoteColors,
     localEmote,
     remoteEmotes,
     sendEmote,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BOX_OBSTACLES, OFFICE_BOUNDS } from '../../data/portfolioData';
-import { characterState } from '../../state/inputState';
+import { characterState, realtimeEvents } from '../../state/inputState';
 
 interface DebrisSpec {
   id: string;
@@ -73,37 +73,53 @@ export function PatrolDrone({ resetSignal }: PatrolDroneProps) {
     setBroken(false);
   }, [resetSignal]);
 
-  const triggerExplosion = (x: number, y: number, z: number) => {
+  const triggerExplosion = (
+    x: number,
+    y: number,
+    z: number,
+    impactVx = characterState.vx,
+    impactVz = characterState.vz
+  ) => {
     brokenRef.current = true;
     explosionOrigin.current.set(x, y, z);
     explosionAge.current = 0;
 
-    // Launch 8 kickable pieces outward from the explosion point
+    // Launch 8 kickable pieces outward deterministically so all clients match
     debrisBodiesRef.current = DEBRIS_SPECS.map((_, idx) => {
-      const angle = (idx / DEBRIS_SPECS.length) * Math.PI * 2 + Math.random() * 0.5;
-      const burstSpeed = 3.2 + Math.random() * 4.2;
+      const angle = (idx / DEBRIS_SPECS.length) * Math.PI * 2 + 0.3;
+      const burstSpeed = 3.8 + (idx % 3) * 1.3;
       return {
         x: x + Math.cos(angle) * 0.18,
-        y: y + (Math.random() - 0.3) * 0.2,
+        y: y + ((idx % 3) - 1) * 0.08,
         z: z + Math.sin(angle) * 0.18,
-        vx: Math.cos(angle) * burstSpeed + characterState.vx * 0.35,
-        vy: 3.2 + Math.random() * 4.0,
-        vz: Math.sin(angle) * burstSpeed + characterState.vz * 0.35,
-        rx: Math.random() * Math.PI,
-        ry: Math.random() * Math.PI,
-        rz: Math.random() * Math.PI,
-        avx: (Math.random() - 0.5) * 14,
-        avy: (Math.random() - 0.5) * 14,
-        avz: (Math.random() - 0.5) * 14,
+        vx: Math.cos(angle) * burstSpeed + impactVx * 0.35,
+        vy: 3.6 + (idx % 4) * 0.9,
+        vz: Math.sin(angle) * burstSpeed + impactVz * 0.35,
+        rx: idx * 0.7,
+        ry: idx * 1.1,
+        rz: idx * 0.5,
+        avx: (idx % 2 === 0 ? 1 : -1) * (6 + idx),
+        avy: (idx % 2 === 0 ? -1 : 1) * (5 + idx),
+        avz: (idx % 3 === 0 ? 1 : -1) * 7,
       };
     });
 
     setBroken(true);
   };
 
-  useFrame((state, rawDelta) => {
+  useFrame((_, rawDelta) => {
     const dt = Math.min(rawDelta, 0.04);
-    const t = state.clock.elapsedTime;
+    // Synchronized wall-clock time so the drone is in the exact same spot for all visitors!
+    const t = Date.now() * 0.001;
+
+    // Consume remote drone explosion event from another visitor
+    if (realtimeEvents.pendingDroneSmash) {
+      const ev = realtimeEvents.pendingDroneSmash;
+      realtimeEvents.pendingDroneSmash = null;
+      if (!brokenRef.current) {
+        triggerExplosion(ev.x, ev.y, ev.z, ev.vx, ev.vz);
+      }
+    }
 
     if (!brokenRef.current) {
       // Fly figure-8 patrol at reachable jump height (~2.85m)
@@ -132,7 +148,14 @@ export function PatrolDrone({ resetSignal }: PatrolDroneProps) {
         characterState.z - z
       );
       if (characterState.y > 0.25 && distToDrone < 1.35) {
-        triggerExplosion(x, y, z);
+        triggerExplosion(x, y, z, characterState.vx, characterState.vz);
+        realtimeEvents.sendDroneSmash?.({
+          x,
+          y,
+          z,
+          vx: characterState.vx,
+          vz: characterState.vz,
+        });
       }
       return;
     }

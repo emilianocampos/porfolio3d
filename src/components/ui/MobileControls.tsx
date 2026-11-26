@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Hand } from 'lucide-react';
+import { ArrowUp, Hand, Zap } from 'lucide-react';
 import type { InteractiveZone, ZoneId } from '../../data/portfolioData';
 import { mobileInput, resetMobileInput } from '../../state/inputState';
 
@@ -17,18 +17,30 @@ export function MobileControls({
   onOpenSection,
 }: MobileControlsProps) {
   const baseRef = useRef<HTMLDivElement>(null);
+  const knobRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
-  const [knobOffset, setKnobOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isSprinting, setIsSprinting] = useState(false);
+
+  const setKnobTransform = (x: number, y: number) => {
+    if (knobRef.current) {
+      knobRef.current.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    }
+  };
 
   useEffect(() => {
     if (modalOpen) {
       pointerIdRef.current = null;
       setIsDragging(false);
-      setKnobOffset({ x: 0, y: 0 });
+      setIsSprinting(false);
+      setKnobTransform(0, 0);
       resetMobileInput();
     }
   }, [modalOpen]);
+
+  useEffect(() => {
+    mobileInput.sprint = isSprinting;
+  }, [isSprinting]);
 
   const updateFromClientPos = (clientX: number, clientY: number) => {
     const base = baseRef.current;
@@ -46,7 +58,7 @@ export function MobileControls({
       dy = (dy / dist) * MAX_RADIUS;
     }
 
-    setKnobOffset({ x: dx, y: dy });
+    setKnobTransform(dx, dy);
 
     const normX = dx / MAX_RADIUS;
     const normZ = dy / MAX_RADIUS;
@@ -56,11 +68,9 @@ export function MobileControls({
     if (mag < 0.12) {
       mobileInput.moveX = 0;
       mobileInput.moveZ = 0;
-      mobileInput.sprint = false;
     } else {
       mobileInput.moveX = normX;
       mobileInput.moveZ = normZ;
-      mobileInput.sprint = mag > 0.85;
     }
   };
 
@@ -81,10 +91,9 @@ export function MobileControls({
     if (pointerIdRef.current !== e.pointerId) return;
     pointerIdRef.current = null;
     setIsDragging(false);
-    setKnobOffset({ x: 0, y: 0 });
+    setKnobTransform(0, 0);
     mobileInput.moveX = 0;
     mobileInput.moveZ = 0;
-    mobileInput.sprint = false;
   };
 
   if (modalOpen) return null;
@@ -101,12 +110,7 @@ export function MobileControls({
         onPointerCancel={handlePointerEnd}
       >
         <div className="joystick-ring" />
-        <div
-          className="joystick-knob"
-          style={{
-            transform: `translate3d(${knobOffset.x}px, ${knobOffset.y}px, 0)`,
-          }}
-        />
+        <div ref={knobRef} className="joystick-knob" />
       </div>
 
       {/* Right Action Buttons */}
@@ -127,18 +131,35 @@ export function MobileControls({
           </button>
         )}
 
-        <button
-          type="button"
-          className="mobile-action-btn mobile-action-btn--jump"
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            mobileInput.jumpRequested = true;
-          }}
-          aria-label="Saltar"
-        >
-          <ArrowUp size={22} />
-          <span>Saltar</span>
-        </button>
+        <div className="mobile-actions__row">
+          <button
+            type="button"
+            className={`mobile-action-btn mobile-action-btn--sprint ${isSprinting ? 'mobile-action-btn--sprint-active' : ''
+              }`}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              setIsSprinting((prev) => !prev);
+            }}
+            aria-label="Correr"
+            aria-pressed={isSprinting}
+          >
+            <Zap size={20} fill={isSprinting ? 'currentColor' : 'none'} />
+            <span>Correr</span>
+          </button>
+
+          <button
+            type="button"
+            className="mobile-action-btn mobile-action-btn--jump"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              mobileInput.jumpRequested = true;
+            }}
+            aria-label="Saltar"
+          >
+            <ArrowUp size={22} />
+            <span>Saltar</span>
+          </button>
+        </div>
       </div>
     </div>
   );

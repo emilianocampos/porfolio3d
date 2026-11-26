@@ -8,6 +8,14 @@ interface RealtimeWaypointsProps {
   onNavigateZone: (id: ZoneId) => void;
 }
 
+interface CachedDomState {
+  offscreen: boolean | null;
+  inside: boolean | null;
+  distText: string;
+  calloutText: string;
+  deg: number;
+}
+
 export function RealtimeWaypoints({
   modalOpen,
   onNavigateZone,
@@ -16,41 +24,69 @@ export function RealtimeWaypoints({
   const distRefs = useRef<Record<string, HTMLSpanElement | null>>({});
   const arrowRefs = useRef<Record<string, HTMLSpanElement | null>>({});
   const calloutRefs = useRef<Record<string, HTMLSpanElement | null>>({});
+  const cacheRef = useRef<Record<string, CachedDomState>>({});
 
   useEffect(() => {
     if (modalOpen) return;
+    // Reset DOM cache whenever buttons mount/remount so first frame always syncs everything
+    cacheRef.current = {};
     let rafId = 0;
 
     const tick = () => {
-      for (const zone of ZONES) {
+      const cache = cacheRef.current;
+
+      for (let i = 0; i < ZONES.length; i++) {
+        const zone = ZONES[i];
         const data = waypointScreenMap[zone.id];
         const el = itemRefs.current[zone.id];
-        const distEl = distRefs.current[zone.id];
-        const arrowEl = arrowRefs.current[zone.id];
-        const calloutEl = calloutRefs.current[zone.id];
+        if (!el || !data) continue;
 
-        if (!el) continue;
+        let prev = cache[zone.id];
+        if (!prev) {
+          prev = {
+            offscreen: null,
+            inside: null,
+            distText: '',
+            calloutText: '',
+            deg: -9999,
+          };
+          cache[zone.id] = prev;
+        }
 
+        // Always keep 3D-projected screen position smoothly synced at 60fps
         el.style.transform = `translate3d(${data.screenX.toFixed(1)}px, ${data.screenY.toFixed(1)}px, 0) translate(-50%, -50%)`;
-        el.dataset.offscreen = data.isOffscreen ? 'true' : 'false';
-        el.dataset.inside = data.isInside ? 'true' : 'false';
 
-        if (distEl) {
-          distEl.textContent = data.isInside
-            ? '¡Aquí!'
-            : `${data.distance.toFixed(1)}m`;
+        // Only mutate dataset attributes & textContent when they actually change
+        if (data.isOffscreen !== prev.offscreen) {
+          prev.offscreen = data.isOffscreen;
+          el.dataset.offscreen = data.isOffscreen ? 'true' : 'false';
+        }
+        if (data.isInside !== prev.inside) {
+          prev.inside = data.isInside;
+          el.dataset.inside = data.isInside ? 'true' : 'false';
         }
 
-        if (arrowEl) {
-          // Lucide Navigation icon points ~45deg up-right by default; align to screen angle
-          const deg = (data.angleRad * 180) / Math.PI + 45;
-          arrowEl.style.transform = `rotate(${deg.toFixed(1)}deg)`;
+        const nextDistText = data.isInside
+          ? '¡Aquí!'
+          : `${data.distance.toFixed(1)}m`;
+        if (nextDistText !== prev.distText) {
+          prev.distText = nextDistText;
+          const distEl = distRefs.current[zone.id];
+          if (distEl) distEl.textContent = nextDistText;
         }
 
-        if (calloutEl) {
-          calloutEl.textContent = data.isInside
-            ? 'Tocá E para entrar'
-            : zone.callout;
+        const deg = Math.round((data.angleRad * 180) / Math.PI + 45);
+        if (deg !== prev.deg) {
+          prev.deg = deg;
+          const arrowEl = arrowRefs.current[zone.id];
+          if (arrowEl) arrowEl.style.transform = `rotate(${deg}deg)`;
+        }
+
+        const nextCallout = data.isInside ? 'Tocá E para entrar' : zone.callout;
+        if (nextCallout !== prev.calloutText) {
+          prev.calloutText = nextCallout;
+          const calloutEl = calloutRefs.current[zone.id];
+          if (calloutEl) calloutEl.textContent = nextCallout;
         }
       }
 

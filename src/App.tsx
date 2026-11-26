@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { type InteractiveZone, ZONES, type ZoneId } from './data/portfolioData';
-import { navigationState } from './state/inputState';
+import { navigationState, realtimeEvents } from './state/inputState';
 import { useRealtimeOffice } from './hooks/useRealtimeOffice';
 import { Scene } from './components/3d/Scene';
 import { HUD } from './components/ui/HUD';
@@ -23,8 +23,15 @@ export default function App() {
   const [openReviewForm, setOpenReviewForm] = useState(initialReviewOpen);
   const [resetPropsSignal, setResetPropsSignal] = useState(0);
 
-  const { onlineCount, remoteIds, localEmote, remoteEmotes, sendEmote } =
-    useRealtimeOffice();
+  const {
+    onlineCount,
+    localColor,
+    remoteIds,
+    remoteColors,
+    localEmote,
+    remoteEmotes,
+    sendEmote,
+  } = useRealtimeOffice();
 
   const handleNavigateZone = useCallback(
     (id: ZoneId) => {
@@ -52,6 +59,20 @@ export default function App() {
     setOpenSection(zoneId);
   }, []);
 
+  const handleResetProps = useCallback(() => {
+    setResetPropsSignal((n) => n + 1);
+    realtimeEvents.sendWorldReset?.();
+  }, []);
+
+  useEffect(() => {
+    realtimeEvents.onRemoteReset = () => {
+      setResetPropsSignal((n) => n + 1);
+    };
+    return () => {
+      realtimeEvents.onRemoteReset = null;
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'KeyE' && activeZone && !openSection) {
@@ -63,13 +84,13 @@ export default function App() {
         setOpenSection(null);
       } else if (e.code === 'KeyR' && !openSection) {
         e.preventDefault();
-        setResetPropsSignal((n) => n + 1);
+        handleResetProps();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeZone, openSection]);
+  }, [activeZone, openSection, handleResetProps]);
 
   return (
     <main className="app-root">
@@ -77,7 +98,9 @@ export default function App() {
         activeZone={activeZone}
         modalOpen={openSection !== null}
         resetPropsSignal={resetPropsSignal}
+        localColor={localColor}
         remoteIds={remoteIds}
+        remoteColors={remoteColors}
         localEmote={localEmote}
         remoteEmotes={remoteEmotes}
         onZoneChange={setActiveZone}
@@ -98,7 +121,7 @@ export default function App() {
           setOpenReviewForm(false);
           setOpenSection(id);
         }}
-        onResetProps={() => setResetPropsSignal((n) => n + 1)}
+        onResetProps={handleResetProps}
         onSendEmote={sendEmote}
       />
 

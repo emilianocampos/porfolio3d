@@ -1,10 +1,20 @@
 export type ZoneId =
   | 'projects'
+  | 'creator'
   | 'about'
   | 'skills'
   | 'press'
   | 'reviews'
   | 'contact';
+
+export interface CreatorSocial {
+  id: string;
+  platform: string;
+  followers: string;
+  label: string;
+  color: string;
+  url: string;
+}
 
 export interface PressItem {
   id: string;
@@ -69,9 +79,9 @@ export interface SkillGroup {
 
 export const OFFICE_BOUNDS = {
   minX: -16.1,
-  maxX: 16.1,
+  maxX: 19.6,
   minZ: -11.1,
-  maxZ: 11.1,
+  maxZ: 16.4,
 };
 
 export const ZONES: InteractiveZone[] = [
@@ -81,12 +91,25 @@ export const ZONES: InteractiveZone[] = [
     subtitle: 'Escritorio Dev · Apps y trabajos',
     callout: '¡Mirá mis proyectos!',
     actionLabel: 'Abrir Proyectos',
-    position: [9.8, 0, 7.2],
-    walkTarget: [9.8, 5.2],
-    padPosition: [9.8, 0.9, 7.6],
-    labelPosition: [9.8, 2.85, 7.6],
+    position: [14.8, 0, 7.2],
+    walkTarget: [14.8, 5.2],
+    padPosition: [14.8, 0.9, 7.6],
+    labelPosition: [14.8, 2.85, 7.6],
     radius: 3.8,
     color: '#6366f1',
+  },
+  {
+    id: 'creator',
+    title: 'Contenido',
+    subtitle: 'Setup Streamer · Videos de Fútbol (+182K)',
+    callout: '¡Mirá mis redes de fútbol!',
+    actionLabel: 'Ver Creación de Contenido',
+    position: [17.2, 0, 0.8],
+    walkTarget: [14.5, 0.8],
+    padPosition: [17.7, 0.9, 0.8],
+    labelPosition: [17.7, 3.05, 0.8],
+    radius: 3.8,
+    color: '#a855f7',
   },
   {
     id: 'about',
@@ -157,8 +180,8 @@ export const ZONES: InteractiveZone[] = [
 
 // Rectangular colliders for office furniture & pillar (with walkable topY!)
 export const BOX_OBSTACLES: BoxObstacle[] = [
-  // Central structural pillar
-  { minX: -0.75, maxX: 0.75, minZ: -2.4, maxZ: -0.9, topY: 6.0 },
+  // Structural pillar (to the right of the Oscars red carpet)
+  { minX: 2.85, maxX: 4.35, minZ: -2.4, maxZ: -0.9, topY: 6.0 },
   // Lounge navy armchair (back-left)
   { minX: -14.2, maxX: -12.0, minZ: -10.3, maxZ: -8.4, topY: 0.7 },
   // Lounge red beanbag
@@ -172,15 +195,55 @@ export const BOX_OBSTACLES: BoxObstacle[] = [
   // Waiting area sofa (far back-right)
   { minX: 10.2, maxX: 14.0, minZ: -10.5, maxZ: -8.6, topY: 0.7 },
   // Tall red locker (right edge)
-  { minX: 14.8, maxX: 16.2, minZ: -8.4, maxZ: -5.8, topY: 3.0 },
-  // Dev server rack & main desk (front-right)
-  { minX: 3.8, maxX: 5.4, minZ: 4.3, maxZ: 8.1, topY: 1.9 },
-  { minX: 7.2, maxX: 12.4, minZ: 6.5, maxZ: 8.7, topY: 0.88 },
+  { minX: 18.2, maxX: 19.6, minZ: -8.4, maxZ: -5.8, topY: 3.0 },
+  // Dev server rack & main desk (front-right, pushed back toward right edge)
+  { minX: 8.8, maxX: 10.4, minZ: 4.3, maxZ: 8.1, topY: 1.9 },
+  { minX: 12.2, maxX: 17.4, minZ: 6.5, maxZ: 8.7, topY: 0.88 },
   // Skills black PC desk (front-left)
   { minX: -15.4, maxX: -13.0, minZ: 4.9, maxZ: 8.7, topY: 0.88 },
-  // Streamer & Recording Studio desk (mid-right)
-  { minX: 12.5, maxX: 14.9, minZ: -1.1, maxZ: 2.7, topY: 0.88 },
+  // Streamer & Recording Studio desk (mid-right, pushed back toward right edge)
+  { minX: 16.5, maxX: 18.9, minZ: -1.1, maxZ: 2.7, topY: 0.88 },
 ];
+
+export const CREATOR_INFO = {
+  niche: 'Fútbol · Entretenimiento y Comunidad',
+  totalAudience: '+182.000',
+  bio: 'Creo videos y contenido diario del nicho fútbol para Facebook, TikTok, Instagram y YouTube, construyendo una comunidad activa de más de 182 mil personas.',
+  socials: [
+    {
+      id: 'facebook',
+      platform: 'Facebook',
+      followers: '140.000',
+      label: 'Seguidores · Comunidad',
+      color: '#1877f2',
+      url: 'https://www.facebook.com/',
+    },
+    {
+      id: 'tiktok',
+      platform: 'TikTok',
+      followers: '25.000',
+      label: 'Seguidores',
+      color: '#ec4899',
+      url: 'https://www.tiktok.com/',
+    },
+    {
+      id: 'instagram',
+      platform: 'Instagram',
+      followers: '17.000',
+      label: 'Seguidores',
+      color: '#e1306c',
+      url: 'https://www.instagram.com/',
+    },
+    {
+      id: 'youtube',
+      platform: 'YouTube',
+      followers: '759',
+      label: 'Suscriptores',
+      color: '#ef4444',
+      url: 'https://www.youtube.com/',
+    },
+  ] as CreatorSocial[],
+};
 
 export const PROJECTS: ProjectItem[] = [
   {

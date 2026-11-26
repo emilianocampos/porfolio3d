@@ -1,7 +1,8 @@
-import { Briefcase, Code2, ExternalLink, Mail, MapPin, X } from 'lucide-react';
+import { Briefcase, Code2, ExternalLink, Mail, MapPin, Video, X } from 'lucide-react';
 import {
   ABOUT_INFO,
   CONTACT_INFO,
+  CREATOR_INFO,
   PROJECTS,
   SKILLS_GROUPS,
   type ZoneId,
@@ -34,6 +35,7 @@ export function SectionModal({
           <div>
             <span className="modal-eyebrow">
               {section === 'projects' && 'Escritorio Dev · Proyectos'}
+              {section === 'creator' && 'Setup Streamer · Creador de Contenido'}
               {section === 'about' && 'Zona Lounge · Sobre Mí'}
               {section === 'skills' && 'Pizarra & Stack · Skills'}
               {section === 'press' && 'Muro de Prensa · Mascotas Perdidas'}
@@ -42,6 +44,7 @@ export function SectionModal({
             </span>
             <h2>
               {section === 'projects' && 'Mis Proyectos'}
+              {section === 'creator' && 'Creación de Contenido · Fútbol'}
               {section === 'about' && ABOUT_INFO.name}
               {section === 'skills' && 'Stack & Habilidades'}
               {section === 'press' && 'Mi Paso por los Medios'}
@@ -102,6 +105,47 @@ export function SectionModal({
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+
+          {section === 'creator' && (
+            <div className="creator-section">
+              <div className="creator-hero">
+                <div className="creator-hero__badge">
+                  <Video size={14} />
+                  <span>⚽ {CREATOR_INFO.niche}</span>
+                </div>
+                <div className="creator-hero__stat">
+                  <strong>{CREATOR_INFO.totalAudience}</strong>
+                  <span>seguidores totales en comunidad</span>
+                </div>
+                <p>{CREATOR_INFO.bio}</p>
+              </div>
+
+              <div className="creator-socials-grid">
+                {CREATOR_INFO.socials.map((social) => (
+                  <a
+                    key={social.id}
+                    href={social.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="creator-social-card"
+                    style={{ ['--social-color' as string]: social.color }}
+                  >
+                    <div className="creator-social-card__top">
+                      <span className="creator-social-card__dot" />
+                      <strong>{social.platform}</strong>
+                      <ExternalLink size={14} className="creator-social-card__ext" />
+                    </div>
+                    <div className="creator-social-card__count">
+                      {social.followers}
+                    </div>
+                    <span className="creator-social-card__label">
+                      {social.label}
+                    </span>
+                  </a>
+                ))}
+              </div>
             </div>
           )}
 

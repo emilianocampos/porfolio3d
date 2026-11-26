@@ -14,9 +14,11 @@ import {
   mobileInput,
   navigationState,
 } from '../../state/inputState';
+import { RobotModel } from './RobotModel';
 
 interface CharacterProps {
   disabled: boolean;
+  color: string;
   localEmote: { emoji: string; key: number } | null;
   onZoneChange: (zone: InteractiveZone | null) => void;
   onArriveAutoWalk: (zoneId: ZoneId) => void;
@@ -30,6 +32,7 @@ const CHARACTER_RADIUS = 0.55;
 
 export function Character({
   disabled,
+  color,
   localEmote,
   onZoneChange,
   onArriveAutoWalk,
@@ -48,14 +51,14 @@ export function Character({
   const currentZoneId = useRef<string | null>(null);
 
   const { camera, gl, size } = useThree();
-  const cameraTarget = useRef(new THREE.Vector3(0, 1, 0));
-  const desiredCameraTarget = useRef(new THREE.Vector3(0, 1, 0));
-  const desiredCameraPos = useRef(new THREE.Vector3(0, 10.5, 13.5));
+  const cameraTarget = useRef(new THREE.Vector3(0, 1, -5.4));
+  const desiredCameraTarget = useRef(new THREE.Vector3(0, 1, -5.4));
+  const desiredCameraPos = useRef(new THREE.Vector3(0, 9.5, 6.2));
 
-  // Orbit camera state (controlled by finger drag or mouse drag on the canvas)
-  const cameraYaw = useRef(0.36);
-  const cameraPitch = useRef(0.68);
-  const cameraDist = useRef(15.2);
+  // Orbit camera state (starts centered facing the wall sign & spawn pad)
+  const cameraYaw = useRef(0);
+  const cameraPitch = useRef(0.62);
+  const cameraDist = useRef(14.5);
 
   useEffect(() => {
     const dom = gl.domElement;
@@ -400,7 +403,7 @@ export function Character({
   });
 
   return (
-    <group ref={groupRef} position={[0, 0, 2.2]}>
+    <group ref={groupRef} position={[0, 0, -5.4]}>
       {/* Floating emoji speech bubble above your robot */}
       {localEmote && (
         <Html position={[0, 2.85, 0]} center style={{ pointerEvents: 'none' }}>
@@ -416,70 +419,14 @@ export function Character({
         <meshBasicMaterial color="#0f172a" transparent opacity={0.28} />
       </mesh>
 
-      <group ref={bodyRef}>
-        {/* Torso */}
-        <mesh position={[0, 1.05, 0]} castShadow>
-          <boxGeometry args={[0.66, 0.72, 0.42]} />
-          <meshStandardMaterial color="#3b82f6" roughness={0.45} />
-        </mesh>
-
-        {/* Backpack */}
-        <mesh position={[0, 1.08, -0.3]} castShadow>
-          <boxGeometry args={[0.46, 0.52, 0.24]} />
-          <meshStandardMaterial color="#f59e0b" roughness={0.5} />
-        </mesh>
-
-        {/* Head */}
-        <mesh position={[0, 1.72, 0]} castShadow>
-          <boxGeometry args={[0.56, 0.54, 0.52]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.35} />
-        </mesh>
-
-        {/* Glowing Visor / Eyes */}
-        <mesh position={[0, 1.74, 0.27]}>
-          <boxGeometry args={[0.42, 0.2, 0.04]} />
-          <meshStandardMaterial
-            color="#0f172a"
-            emissive="#38bdf8"
-            emissiveIntensity={1.2}
-            roughness={0.2}
-          />
-        </mesh>
-
-        {/* Antenna */}
-        <mesh position={[0, 2.12, 0]} castShadow>
-          <cylinderGeometry args={[0.025, 0.025, 0.28, 8]} />
-          <meshStandardMaterial color="#94a3b8" metalness={0.5} roughness={0.3} />
-        </mesh>
-        <mesh position={[0, 2.28, 0]}>
-          <sphereGeometry args={[0.075, 12, 12]} />
-          <meshStandardMaterial
-            color="#38bdf8"
-            emissive="#38bdf8"
-            emissiveIntensity={1.6}
-          />
-        </mesh>
-
-        {/* Arms */}
-        <mesh ref={leftArmRef} position={[-0.45, 1.04, 0]} castShadow>
-          <boxGeometry args={[0.2, 0.62, 0.22]} />
-          <meshStandardMaterial color="#60a5fa" roughness={0.45} />
-        </mesh>
-        <mesh ref={rightArmRef} position={[0.45, 1.04, 0]} castShadow>
-          <boxGeometry args={[0.2, 0.62, 0.22]} />
-          <meshStandardMaterial color="#60a5fa" roughness={0.45} />
-        </mesh>
-
-        {/* Legs */}
-        <mesh ref={leftLegRef} position={[-0.18, 0.38, 0]} castShadow>
-          <boxGeometry args={[0.24, 0.68, 0.26]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.6} />
-        </mesh>
-        <mesh ref={rightLegRef} position={[0.18, 0.38, 0]} castShadow>
-          <boxGeometry args={[0.24, 0.68, 0.26]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.6} />
-        </mesh>
-      </group>
+      <RobotModel
+        color={color}
+        bodyRef={bodyRef}
+        leftArmRef={leftArmRef}
+        rightArmRef={rightArmRef}
+        leftLegRef={leftLegRef}
+        rightLegRef={rightLegRef}
+      />
     </group>
   );
 }

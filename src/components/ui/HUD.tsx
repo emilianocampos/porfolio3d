@@ -6,6 +6,7 @@ import {
   RotateCcw,
   Star,
   User,
+  Video,
 } from 'lucide-react';
 import { type InteractiveZone, ZONES, type ZoneId } from '../../data/portfolioData';
 
@@ -21,6 +22,7 @@ interface HUDProps {
 
 const ZONE_ICONS: Record<ZoneId, typeof FolderKanban> = {
   projects: FolderKanban,
+  creator: Video,
   about: User,
   skills: Cpu,
   press: Newspaper,

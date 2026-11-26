@@ -47,6 +47,7 @@ export interface WaypointScreenData {
 
 export const waypointScreenMap: Record<ZoneId, WaypointScreenData> = {
   projects: { id: 'projects', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
+  creator: { id: 'creator', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   about: { id: 'about', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   skills: { id: 'skills', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   press: { id: 'press', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
@@ -67,7 +68,7 @@ export const mobileInput: MobileInputState = {
 export const characterState: CharacterPhysicsState = {
   x: 0,
   y: 0,
-  z: 2.2,
+  z: -5.4,
   vx: 0,
   vz: 0,
   rotY: 0,
@@ -78,6 +79,47 @@ export const navigationState: {
   autoWalkTarget: AutoWalkTarget | null;
 } = {
   autoWalkTarget: null,
+};
+
+export interface PropKickEvent {
+  idx: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  avx: number;
+  avy: number;
+  avz: number;
+}
+
+export interface DroneSmashEvent {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vz: number;
+}
+
+export const realtimeEvents: {
+  sendPropKick: ((ev: PropKickEvent) => void) | null;
+  sendRackSmash: ((vx: number) => void) | null;
+  sendDroneSmash: ((ev: DroneSmashEvent) => void) | null;
+  sendWorldReset: (() => void) | null;
+  pendingPropKicks: PropKickEvent[];
+  pendingRackSmash: number | null;
+  pendingDroneSmash: DroneSmashEvent | null;
+  onRemoteReset: (() => void) | null;
+} = {
+  sendPropKick: null,
+  sendRackSmash: null,
+  sendDroneSmash: null,
+  sendWorldReset: null,
+  pendingPropKicks: [],
+  pendingRackSmash: null,
+  pendingDroneSmash: null,
+  onRemoteReset: null,
 };
 
 export function resetMobileInput() {
