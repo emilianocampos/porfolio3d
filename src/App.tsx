@@ -33,6 +33,12 @@ function hasVerticalCinemaParam(): boolean {
   return cinema === '9:16' || cinema === 'vertical' || ratio === '9:16' || ratio === 'vertical';
 }
 
+function hasAutoRecordParam(): boolean {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('record') === '1';
+}
+
 const INTRO_SEEN_KEY = 'portfolio_3d_intro_seen_v1';
 
 function shouldPlayIntro(): boolean {
@@ -185,8 +191,9 @@ export default function App() {
       ? `portfolio-3d-reels-9x16.${ext}`
       : `portfolio-3d-pc-16x9.${ext}`;
 
-    // Restart the 3D scene & cinema timeline from exact t = 0
+    // Restart the 3D scene & cinema timeline from exact t = 0 BEFORE starting MediaRecorder
     cinemaClock.resetRequested = true;
+    cinemaClock.elapsed = 0;
     setResetPropsSignal((n) => n + 1);
     setExportNotice(null);
     setExportProgressSec(0);
@@ -222,18 +229,45 @@ export default function App() {
       setExportNotice(`¡Listo! Se descargó ${filename}`);
     };
 
-    recorder.start(250);
-    const startedAt = performance.now();
-    const totalMs = Math.round(CINEMA_TOTAL_DURATION * 1000);
+    // Wait 2 animation frames so PhysicsProps rebuilds intact "EMI CAMPOS" & camera snaps to t = 0
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (recorder.state !== 'inactive') return;
+        recorder.start(250);
+        let maxCinemaElapsed = 0;
+        let passedStart = false;
 
-    exportTimerRef.current = window.setInterval(() => {
-      const elapsedMs = performance.now() - startedAt;
-      setExportProgressSec(Math.min(CINEMA_TOTAL_DURATION, elapsedMs / 1000));
-      if (elapsedMs >= totalMs) {
-        stopVideoExport();
-      }
-    }, 120);
+        exportTimerRef.current = window.setInterval(() => {
+          const cElapsed = cinemaClock.elapsed;
+          if (cElapsed > 0.5 && cElapsed < 5) {
+            passedStart = true;
+          }
+          if (passedStart && cElapsed > maxCinemaElapsed) {
+            maxCinemaElapsed = cElapsed;
+          }
+          setExportProgressSec(Math.min(CINEMA_TOTAL_DURATION, maxCinemaElapsed));
+
+          const reachedEnd =
+            passedStart &&
+            (cElapsed >= CINEMA_TOTAL_DURATION - 0.08 ||
+              (maxCinemaElapsed > CINEMA_TOTAL_DURATION * 0.85 && cElapsed < 1.0));
+          if (reachedEnd) {
+            stopVideoExport();
+          }
+        }, 60);
+      });
+    });
   }, [isExportingVideo, isVerticalCinema, stopVideoExport]);
+
+  useEffect(() => {
+    if (!cinemaRecording || !hasAutoRecordParam()) return;
+    const t = window.setTimeout(() => {
+      startVideoExport();
+    }, 1500);
+    return () => window.clearTimeout(t);
+    // Run once on mount when ?record=1 is present
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     return () => {

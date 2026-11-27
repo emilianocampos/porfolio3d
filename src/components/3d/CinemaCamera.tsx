@@ -21,47 +21,56 @@ interface CameraShot {
  * 5. Grand crane-up bird's-eye reveal of the entire 3D office
  */
 const CINEMA_SHOTS: CameraShot[] = [
-  // 1. Static centered opening (4.3s): full "EMI CAMPOS" framed cleanly + drone explosion!
+  // 1. Static centered opening (5.7s): 1.55s intact "EMI CAMPOS" hold -> robot smashes it & explodes the drone!
   {
-    duration: 4.3,
+    duration: 5.7,
     fromPos: [0.0, 4.3, 19.6],
     toPos: [0.0, 4.3, 19.6],
     fromLook: [0.0, 1.8, 9.0],
     toLook: [0.0, 1.8, 9.0],
     verticalPullback: 1.28,
   },
-  // 2. Real newspaper clipping on the Press Wall — gentle push-in & hold cleanly on the newspaper (3.2s)
+  // 2. Real newspaper clipping on the Press Wall — crisp zoom-in & hold on the newspaper (3.8s)
   {
-    duration: 3.2,
-    fromPos: [-7.6, 4.18, -1.0],
-    toPos: [-8.8, 4.18, -1.0],
+    duration: 3.8,
+    fromPos: [-8.6, 4.18, -1.0],
+    toPos: [-11.0, 4.18, -1.0],
     fromLook: [-16.6, 4.18, -1.0],
     toLook: [-16.6, 4.18, -1.0],
-    verticalPullback: 1.24,
+    verticalPullback: 1.15,
   },
-  // 3A. Dedicated slow push-in & hold right on "EMILIANO CAMPOS" hero sign (3.2s)
+  // 3A. Slow push-in & hold right on "EMILIANO CAMPOS" hero sign (2.6s)
   {
-    duration: 3.2,
-    fromPos: [0.2, 4.15, -2.2],
+    duration: 2.6,
+    fromPos: [0.2, 4.15, -2.4],
     toPos: [0.2, 4.15, -3.4],
     fromLook: [0.2, 4.15, -11.58],
     toLook: [0.2, 4.15, -11.58],
     verticalPullback: 1.26,
   },
-  // 3B. Smooth glide to settle clearly on "¿TENÉS UN NEGOCIO O EMPRESA Y QUERÉS UN SISTEMA WEB?" (3.6s)
+  // 3B. Seamless continuous pan from "EMILIANO CAMPOS" to "¿TENÉS UN NEGOCIO O EMPRESA..." (2.2s)
   {
-    duration: 3.6,
+    duration: 2.2,
     fromPos: [0.2, 4.15, -3.4],
     toPos: [5.8, 4.15, -3.4],
     fromLook: [0.2, 4.15, -11.58],
     toLook: [5.8, 4.15, -11.58],
     verticalPullback: 1.26,
   },
-  // 3C. Linger on Contacto sign & glide smoothly to "CONTADOR DE ME GUSTA" (3.0s)
+  // 3C. Seamless hold & gentle push-in squarely on "¿TENÉS UN NEGOCIO O EMPRESA Y QUERÉS UN SISTEMA WEB?" (3.2s)
   {
-    duration: 3.0,
+    duration: 3.2,
     fromPos: [5.8, 4.15, -3.4],
-    toPos: [10.8, 4.15, -3.0],
+    toPos: [5.8, 4.15, -3.8],
+    fromLook: [5.8, 4.15, -11.58],
+    toLook: [5.8, 4.15, -11.58],
+    verticalPullback: 1.26,
+  },
+  // 3D. Seamless continuous pan from Contacto sign to "CONTADOR DE ME GUSTA" (2.6s)
+  {
+    duration: 2.6,
+    fromPos: [5.8, 4.15, -3.8],
+    toPos: [10.8, 4.15, -3.2],
     fromLook: [5.8, 4.15, -11.58],
     toLook: [10.8, 4.15, -11.58],
     verticalPullback: 1.26,

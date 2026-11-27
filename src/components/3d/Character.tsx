@@ -220,20 +220,28 @@ export function Character({
       const prevX = char.position.x;
       const prevZ = char.position.z;
 
-      if (ct < 0.15) {
+      if (ct < 1.55) {
+        // Hold 1.55s with "EMI CAMPOS" completely intact before sprinting & smashing!
         char.position.set(0, 0, 15.2);
         char.rotation.y = Math.PI;
         velocityY.current = 0;
         isGrounded.current = true;
-      } else if (ct < 2.85) {
-        const runProgress = (ct - 0.15) / 2.7;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
+        if (bodyRef.current) {
+          bodyRef.current.position.y = Math.sin(state.clock.elapsedTime * 2.6) * 0.035;
+        }
+      } else if (ct < 4.25) {
+        const runProgress = (ct - 1.55) / 2.7;
         char.position.x = Math.sin(runProgress * Math.PI * 2) * 0.35;
         char.position.z = THREE.MathUtils.lerp(15.2, 3.6, runProgress);
         char.rotation.y = Math.PI;
 
         // Big jump timed right after smashing EMI CAMPOS to hit the drone at z ≈ 6.2!
-        if (ct >= 1.55 && ct <= 2.45) {
-          const jumpP = (ct - 1.55) / 0.9;
+        if (ct >= 2.95 && ct <= 3.85) {
+          const jumpP = (ct - 2.95) / 0.9;
           char.position.y = Math.sin(jumpP * Math.PI) * 1.85;
         } else {
           char.position.y = 0;

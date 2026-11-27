@@ -122,8 +122,8 @@ export function PatrolDrone({ resetSignal }: PatrolDroneProps) {
       }
     }
 
-    // In Cinema mode, re-assemble the drone at t >= 27.9s so it flies visibly over the Trampoline & Portal in Clip 6!
-    if (cinemaClock.active && cinemaClock.elapsed >= 27.9 && brokenRef.current) {
+    // In Cinema mode, re-assemble the drone at t >= 30.7s so it flies visibly over the Trampoline & Portal in Clip 6!
+    if (cinemaClock.active && cinemaClock.elapsed >= 30.7 && brokenRef.current) {
       brokenRef.current = false;
       explosionAge.current = 99;
       debrisBodiesRef.current = [];
@@ -137,19 +137,19 @@ export function PatrolDrone({ resetSignal }: PatrolDroneProps) {
       let nextX: number;
       let nextZ: number;
 
-      if (cinemaClock.active && cinemaClock.elapsed < 3.2) {
-        // In Cinema opening, sweep the drone straight across the red carpet at z=6.2
-        // so the jumping robot intercepts & explodes it right after smashing EMI CAMPOS!
+      if (cinemaClock.active && cinemaClock.elapsed < 4.6) {
+        // In Cinema opening, sweep the drone straight across the red carpet at z=6.8
+        // timed to arrive right at t=3.4s when the jumping robot intercepts & explodes it!
         const ct = cinemaClock.elapsed;
-        const p = Math.min(1, ct / 2.0);
+        const p = Math.min(1, Math.max(0, (ct - 1.4) / 2.0));
         x = THREE.MathUtils.lerp(-6.5, 0.0, p);
         z = THREE.MathUtils.lerp(4.2, 6.8, p);
         y = 3.05 + Math.sin(ct * 4) * 0.12;
         nextX = x + 0.2;
         nextZ = z + 0.08;
-      } else if (cinemaClock.active && cinemaClock.elapsed >= 27.9 && cinemaClock.elapsed <= 33.0) {
+      } else if (cinemaClock.active && cinemaClock.elapsed >= 30.7 && cinemaClock.elapsed <= 35.8) {
         // Clip 6: Drone glides gracefully over the 3D Trampoline (15.6, 11.4) and swoops toward the Portal (8.2, 14.8)!
-        const p = Math.min(1, Math.max(0, (cinemaClock.elapsed - 28.3) / 4.3));
+        const p = Math.min(1, Math.max(0, (cinemaClock.elapsed - 31.1) / 4.3));
         x = THREE.MathUtils.lerp(16.8, 8.2, p);
         z = THREE.MathUtils.lerp(10.6, 14.5, p) + Math.sin(p * Math.PI) * 1.1;
         y = 2.45 + Math.sin(p * Math.PI * 2) * 0.45;
