@@ -1,15 +1,23 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   Cpu,
   FolderKanban,
+  Gamepad2,
   Heart,
+  HelpCircle,
   Mail,
+  Menu,
   Newspaper,
   RotateCcw,
   Star,
   User,
   Video,
+  Volume2,
+  VolumeX,
+  X,
 } from 'lucide-react';
 import { type InteractiveZone, ZONES, type ZoneId } from '../../data/portfolioData';
+import { grabState } from '../../state/inputState';
 
 interface HUDProps {
   activeZone: InteractiveZone | null;
@@ -18,7 +26,11 @@ interface HUDProps {
   onNavigateZone: (id: ZoneId) => void;
   onOpenSection: (id: ZoneId) => void;
   onResetProps: () => void;
+  onOpenTour: () => void;
   onSendEmote: (emoji: string) => void;
+  audioMuted: boolean;
+  audioPlaying: boolean;
+  onToggleAudio: () => void;
 }
 
 const ZONE_ICONS: Record<ZoneId, typeof FolderKanban> = {
@@ -30,6 +42,7 @@ const ZONE_ICONS: Record<ZoneId, typeof FolderKanban> = {
   reviews: Star,
   likes: Heart,
   contact: Mail,
+  minigame: Gamepad2,
 };
 
 const QUICK_EMOTES = ['👋', '🔥', '🚀', '👏'];
@@ -41,44 +54,143 @@ export function HUD({
   onNavigateZone,
   onOpenSection,
   onResetProps,
+  onOpenTour,
   onSendEmote,
+  audioMuted,
+  audioPlaying,
+  onToggleAudio,
 }: HUDProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [grabUi, setGrabUi] = useState({
+    held: grabState.heldIndex !== null,
+    canGrab: grabState.canGrab,
+  });
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const listener = (held: boolean, canGrab: boolean) => {
+      setGrabUi({ held, canGrab });
+    };
+    grabState.listeners.add(listener);
+    return () => {
+      grabState.listeners.delete(listener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (modalOpen) setMenuOpen(false);
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [menuOpen]);
+
   return (
     <div className="hud">
-      {/* Top Quick Navigation */}
+      {/* Top Bar: Live indicator (left) + Centered Hamburger Menu (desktop & mobile) */}
       <header className="hud__topbar">
         <div className="hud__brand">
           <span className="hud__brand-dot hud__brand-dot--live" />
           <span>{onlineCount} en la oficina</span>
         </div>
 
-        <nav className="hud__nav" aria-label="Navegación rápida">
-          {ZONES.map((zone) => {
-            const Icon = ZONE_ICONS[zone.id];
-            const isNear = activeZone?.id === zone.id;
-            return (
-              <button
-                key={zone.id}
-                type="button"
-                onClick={() => onNavigateZone(zone.id)}
-                className={`hud__nav-btn ${isNear ? 'hud__nav-btn--active' : ''}`}
-                title={`Ir a ${zone.title}`}
-              >
-                <Icon size={15} />
-                <span>{zone.title}</span>
-              </button>
-            );
-          })}
-
+        <div className="hud__menu-wrap" ref={menuRef}>
           <button
             type="button"
-            onClick={onResetProps}
-            className="hud__nav-btn"
-            title="Reacomodar objetos tirados (R)"
+            className={`hud__menu-btn ${menuOpen ? 'hud__menu-btn--open' : ''}`}
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
           >
-            <RotateCcw size={15} />
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+            <span>{menuOpen ? 'Cerrar' : 'Menú'}</span>
           </button>
-        </nav>
+
+          {menuOpen && (
+            <nav className="hud__menu-panel" aria-label="Navegación rápida">
+              <div className="hud__menu-grid">
+                {ZONES.map((zone) => {
+                  const Icon = ZONE_ICONS[zone.id];
+                  const isNear = activeZone?.id === zone.id;
+                  return (
+                    <button
+                      key={zone.id}
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onNavigateZone(zone.id);
+                      }}
+                      className={`hud__menu-item ${isNear ? 'hud__menu-item--active' : ''}`}
+                      style={{ ['--zone-color' as string]: zone.color }}
+                    >
+                      <Icon size={16} />
+                      <span>{zone.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="hud__menu-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onResetProps();
+                  }}
+                  className="hud__menu-action-btn"
+                  title="Reacomodar objetos tirados (R)"
+                >
+                  <RotateCcw size={15} />
+                  <span>Reacomodar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenTour();
+                  }}
+                  className="hud__menu-action-btn"
+                  title="Cómo moverte y girar la cámara"
+                >
+                  <HelpCircle size={15} />
+                  <span>Guía</span>
+                </button>
+              </div>
+            </nav>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className={`hud__audio-btn ${audioPlaying ? 'hud__audio-btn--playing' : ''}`}
+          onClick={onToggleAudio}
+          title={
+            audioPlaying
+              ? 'Silenciar bienvenida'
+              : 'Escuchar audio de bienvenida'
+          }
+          aria-label={
+            audioPlaying
+              ? 'Silenciar audio de bienvenida'
+              : 'Reproducir audio de bienvenida'
+          }
+        >
+          {audioMuted && !audioPlaying ? <VolumeX size={17} /> : <Volume2 size={17} />}
+        </button>
       </header>
 
       {/* Live Emote Bar */}
@@ -118,6 +230,22 @@ export function HUD({
         </div>
       )}
 
+      {/* Contextual Grab / Throw Prompt ([F]) */}
+      {!modalOpen && (grabUi.held || grabUi.canGrab) && (
+        <div className="hud__grab-wrap">
+          <button
+            type="button"
+            className={`hud__grab-btn ${grabUi.held ? 'hud__grab-btn--throw' : ''}`}
+            onClick={() => {
+              grabState.grabRequested = true;
+            }}
+          >
+            <kbd className="hud__grab-key">F</kbd>
+            <span>{grabUi.held ? '¡Tirar objeto!' : 'Agarrar objeto'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Bottom Controls Hint */}
       {!modalOpen && (
         <div className="hud__controls">
@@ -134,10 +262,13 @@ export function HUD({
             <kbd>Espacio</kbd> Saltar
           </span>
           <span>
+            <kbd>F</kbd> Agarrar / Tirar
+          </span>
+          <span>
             <kbd>E</kbd> Interactuar
           </span>
           <span>
-            <kbd>R</kbd> Reacomodar objetos
+            <kbd>R</kbd> Reacomodar
           </span>
         </div>
       )}

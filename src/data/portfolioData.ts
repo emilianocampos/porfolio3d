@@ -6,7 +6,8 @@ export type ZoneId =
   | 'press'
   | 'reviews'
   | 'likes'
-  | 'contact';
+  | 'contact'
+  | 'minigame';
 
 export interface CreatorSocial {
   id: string;
@@ -48,8 +49,10 @@ export interface InteractiveZone {
   walkTarget: [number, number];
   /** Exact center of the table/surface where the glowing circle sits */
   padPosition: [number, number, number];
-  /** 3D position right above the PC/focal object for the floating icon & label */
+  /** 3D position right above the PC/focal object for the floating label */
   labelPosition: [number, number, number];
+  /** Optional custom Y height for the floating GTA triangle cone */
+  iconY?: number;
   radius: number;
   color: string;
 }
@@ -69,8 +72,9 @@ export interface ProjectItem {
   description: string;
   tags: string[];
   gradient: string;
+  imageUrl?: string;
   demoUrl: string;
-  repoUrl: string;
+  repoUrl?: string;
 }
 
 export interface SkillGroup {
@@ -92,11 +96,11 @@ export const ZONES: InteractiveZone[] = [
     subtitle: 'Escritorio Dev · Apps y trabajos',
     callout: '¡Mirá mis proyectos!',
     actionLabel: 'Abrir Proyectos',
-    position: [14.8, 0, 7.2],
-    walkTarget: [14.8, 5.2],
-    padPosition: [14.8, 0.9, 7.6],
-    labelPosition: [14.8, 2.85, 7.6],
-    radius: 3.8,
+    position: [10.4, 0, 2.8],
+    walkTarget: [8.4, 2.8],
+    padPosition: [10.2, 0.9, 2.8],
+    labelPosition: [10.8, 4.35, 2.8],
+    radius: 3.9,
     color: '#6366f1',
   },
   {
@@ -105,24 +109,25 @@ export const ZONES: InteractiveZone[] = [
     subtitle: 'Setup Streamer · Videos de Fútbol (+182K)',
     callout: '¡Mirá mis redes de fútbol!',
     actionLabel: 'Ver Creación de Contenido',
-    position: [17.2, 0, 0.8],
-    walkTarget: [14.5, 0.8],
-    padPosition: [17.7, 0.9, 0.8],
-    labelPosition: [17.7, 3.05, 0.8],
+    position: [-9.5, 0, -8.2],
+    walkTarget: [-9.5, -5.6],
+    padPosition: [-9.5, 0.9, -8.6],
+    labelPosition: [-9.5, 3.05, -8.6],
     radius: 3.8,
     color: '#a855f7',
   },
   {
     id: 'about',
     title: 'Sobre Mí',
-    subtitle: 'Zona Lounge · Historia y prensa',
+    subtitle: 'Cartel Principal · Emiliano Campos',
     callout: '¡Conoceme acá!',
     actionLabel: 'Ver Sobre Mí',
-    position: [-9.5, 0, -6.8],
-    walkTarget: [-9.5, -5.0],
-    padPosition: [-9.5, 0.62, -7.2],
-    labelPosition: [-9.5, 2.55, -7.2],
-    radius: 3.6,
+    position: [0.2, 0, -9.6],
+    walkTarget: [0.2, -8.2],
+    padPosition: [0.2, 0.03, -9.8],
+    labelPosition: [0.2, 2.7, -10.6],
+    iconY: 1.15,
+    radius: 3.4,
     color: '#10b981',
   },
   {
@@ -167,9 +172,9 @@ export const ZONES: InteractiveZone[] = [
   {
     id: 'likes',
     title: 'Me Gusta',
-    subtitle: 'Contador LED · Apoyá el portfolio',
+    subtitle: 'Contador de Me Gusta · En vivo',
     callout: '¡Dejá tu Me Gusta ❤️!',
-    actionLabel: 'Dejar Me Gusta',
+    actionLabel: 'Abrir Contador de Me Gusta',
     position: [8.8, 0, -9.2],
     walkTarget: [8.8, -7.2],
     padPosition: [8.8, 1.02, -9.2],
@@ -186,22 +191,46 @@ export const ZONES: InteractiveZone[] = [
     position: [4.5, 0, -8.5],
     walkTarget: [4.5, -6.8],
     padPosition: [4.5, 1.21, -9.2],
-    labelPosition: [4.5, 3.15, -9.2],
+    labelPosition: [4.5, 2.25, -9.2],
     radius: 3.6,
     color: '#f59e0b',
   },
+  {
+    id: 'minigame',
+    title: 'Minijuego',
+    subtitle: 'Trampolín 3D · ¡Próximamente!',
+    callout: '¡Próximamente!',
+    actionLabel: 'Minijuego (Próximamente)',
+    position: [15.6, 0, 11.4],
+    walkTarget: [12.8, 11.4],
+    padPosition: [15.6, 0.445, 11.4],
+    labelPosition: [15.6, 2.85, 11.4],
+    radius: 3.3,
+    color: '#22d3ee',
+  },
 ];
+
+export const TRAMPOLINE = {
+  x: 15.6,
+  z: 11.4,
+  radius: 2.15,
+  topY: 0.42,
+} as const;
+
+export const SPAWN_PORTAL = {
+  x: 8.2,
+  z: 14.8,
+  radius: 1.5,
+} as const;
 
 // Rectangular colliders for office furniture & pillar (with walkable topY!)
 export const BOX_OBSTACLES: BoxObstacle[] = [
   // Structural pillar (to the right of the Oscars red carpet)
   { minX: 2.85, maxX: 4.35, minZ: -2.4, maxZ: -0.9, topY: 6.0 },
   // Lounge navy armchair (back-left)
-  { minX: -14.2, maxX: -12.0, minZ: -10.3, maxZ: -8.4, topY: 0.7 },
-  // Lounge red beanbag
-  { minX: -6.4, maxX: -4.4, minZ: -10.1, maxZ: -8.3, topY: 0.75 },
-  // Lounge coffee table
-  { minX: -10.7, maxX: -8.3, minZ: -7.9, maxZ: -6.5, topY: 0.6 },
+  { minX: -14.6, maxX: -12.4, minZ: -10.3, maxZ: -8.4, topY: 0.7 },
+  // Streamer & Gamer Studio white desk (back-left, where coffee table was)
+  { minX: -11.4, maxX: -7.6, minZ: -9.7, maxZ: -7.5, topY: 0.88 },
   // Press display table (mid-left wall)
   { minX: -16.4, maxX: -14.4, minZ: -2.4, maxZ: 0.4, topY: 0.88 },
   // Reception desk & bins (back-right)
@@ -210,13 +239,11 @@ export const BOX_OBSTACLES: BoxObstacle[] = [
   { minX: 10.2, maxX: 14.0, minZ: -10.5, maxZ: -8.6, topY: 0.7 },
   // Tall red locker (right edge)
   { minX: 18.2, maxX: 19.6, minZ: -8.4, maxZ: -5.8, topY: 3.0 },
-  // Dev server rack & main desk (front-right, pushed back toward right edge)
-  { minX: 8.8, maxX: 10.4, minZ: 4.3, maxZ: 8.1, topY: 1.9 },
-  { minX: 12.2, maxX: 17.4, minZ: 6.5, maxZ: 8.7, topY: 0.88 },
+  // Dev main desk (Proyectos, rotated facing red carpet) & IT Server Rack with cables
+  { minX: 9.7, maxX: 11.9, minZ: 0.2, maxZ: 5.4, topY: 0.88 },
+  { minX: 10.35, maxX: 11.65, minZ: -1.4, maxZ: -0.1, topY: 2.35 },
   // Skills black PC desk (front-left)
   { minX: -15.4, maxX: -13.0, minZ: 4.9, maxZ: 8.7, topY: 0.88 },
-  // Streamer & Recording Studio desk (mid-right, pushed back toward right edge)
-  { minX: 16.5, maxX: 18.9, minZ: -1.1, maxZ: 2.7, topY: 0.88 },
 ];
 
 export const CREATOR_INFO = {
@@ -261,112 +288,182 @@ export const CREATOR_INFO = {
 
 export const PROJECTS: ProjectItem[] = [
   {
+    id: 'proj-mambaqr',
+    title: 'MambaQR · Menú Digital con IA',
+    description:
+      'Menú digital interactivo para negocios gastronómicos con pedidos desde la mesa, botones rápidos para llamar al mozo y pedir la cuenta, reseñas de clientes y sistema de fidelidad con suscripciones y sellos. Incluye panel de administración para personalizar el diseño y todas las configuraciones, además de Mercado Pago integrado.',
+    tags: [
+      'Menú Digital QR',
+      'IA',
+      'Mercado Pago',
+      'Pedidos en Mesa',
+      'Fidelidad & Sellos',
+      'Panel Admin',
+    ],
+    gradient: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
+    imageUrl: '/projects/mambaqr.png',
+    demoUrl: 'https://mambaqr.vercel.app/',
+  },
+  {
+    id: 'proj-cukinails',
+    title: 'Cuki Nails · Web para Salón de Uñas',
+    description:
+      'Sitio web elegante y mobile-first para Home Studio de uñas con presentación de servicios, galería de diseños personalizados, reserva de turnos e integración directa con Instagram y WhatsApp.',
+    tags: ['Landing Page', 'Salón de Uñas', 'Turnos', 'UI/UX', 'WhatsApp'],
+    gradient: 'linear-gradient(135deg, #db2777 0%, #f472b6 100%)',
+    imageUrl: '/projects/cukinails.jpg',
+    demoUrl: 'https://cukinails.netlify.app/',
+  },
+  {
     id: 'proj-pets',
-    title: 'Mascotas Trelew · Perdidas y Encontradas',
+    title: 'Mascotas Trelew · App para la Comunidad',
     description:
-      'Plataforma comunitaria geolocalizada para publicar y encontrar mascotas extraviadas en Trelew y el Valle. Destacada en Diario Jornada, Diario El Chubut y LU20 Radio Chubut.',
-    tags: ['React', 'Impacto Social', 'Prensa Local', 'Web App'],
+      'Red comunitaria geolocalizada y gratuita para buscar, reportar avistamientos y reunir perros y gatos extraviados en Trelew y toda la provincia del Chubut. Incluye mapa en vivo, alertas por WhatsApp y carteles QR. Destacada en Diario El Chubut, Diario Jornada, LU20 y Radio 3.',
+    tags: ['App Comunitaria', 'Mapa en Vivo', 'Carteles QR', 'Prensa Local'],
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-    demoUrl: 'https://mascotastrelew.vercel.app',
-    repoUrl: 'https://github.com',
+    imageUrl: '/projects/mascotas-trelew.jpg',
+    demoUrl: 'https://mascotastrelew.vercel.app/',
   },
   {
-    id: 'proj-1',
-    title: 'E-Commerce Interactivo 3D',
+    id: 'proj-klonfark',
+    title: 'Klonfark · E-Commerce de Ropa y Suplementos',
     description:
-      'Tienda web con visor de productos en tiempo real, carrito persistente y checkout optimizado para mobile.',
-    tags: ['React', 'Three.js', 'TypeScript', 'Stripe'],
-    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    demoUrl: 'https://example.com',
-    repoUrl: 'https://github.com',
+      'Tienda online de indumentaria deportivo-urbana, suplementos y accesorios con buscador de productos, categorías, combos, ofertas, carrito de compras y asistencia directa por WhatsApp.',
+    tags: ['E-Commerce', 'Catálogo', 'Ropa & Suplementos', 'WhatsApp', 'Responsive'],
+    gradient: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
+    imageUrl: '/projects/klonfark.jpg',
+    demoUrl: 'https://klonfark.com/',
   },
   {
-    id: 'proj-2',
-    title: 'Dashboard Analítico en Vivo',
+    id: 'proj-imc',
+    title: 'Calculadora de Índice de Masa Corporal (IMC)',
     description:
-      'Panel de métricas con actualización por WebSockets, filtros dinámicos y exportación a CSV/PDF.',
-    tags: ['React', 'Node.js', 'WebSockets', 'Tailwind'],
-    gradient: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-    demoUrl: 'https://example.com',
-    repoUrl: 'https://github.com',
+      'Aplicación web rápida y clara para calcular el Índice de Masa Corporal ingresando altura y peso, con validación instantánea e interfaz dark mode responsive.',
+    tags: ['Web App', 'Salud & Fitness', 'JavaScript', 'UI Dark Mode'],
+    gradient: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+    imageUrl: '/projects/imc.jpg',
+    demoUrl: 'https://imccalculater.netlify.app/',
   },
 ];
 
 export const SKILLS_GROUPS: SkillGroup[] = [
   {
-    category: 'Frontend & 3D',
-    items: ['React', 'TypeScript', 'Three.js', 'React Three Fiber', 'Next.js', 'CSS / Tailwind'],
+    category: 'Frontend',
+    items: [
+      'React',
+      'TypeScript',
+      'Next.js',
+      'JavaScript',
+      'Tailwind CSS',
+      'Three.js',
+      'HTML5 / CSS3',
+    ],
   },
   {
-    category: 'Backend & Datos',
-    items: ['Node.js', 'Express', 'PostgreSQL', 'REST APIs', 'WebSockets'],
+    category: 'Backend & Data',
+    items: ['Node.js', 'Supabase', 'SQL', 'APIs REST', 'PHP / WordPress'],
   },
   {
-    category: 'Herramientas & Flujo',
-    items: ['Git & GitHub', 'Vite', 'Figma', 'Docker', 'Testing'],
+    category: 'Tools & Workflow',
+    items: ['Git & GitHub', 'AWS (básico)', 'SEO', 'Vibe Coding'],
+  },
+  {
+    category: 'Habilidades Extras',
+    items: [
+      'Creación de contenido digital',
+      'Marketing Digital & Growth',
+      'UX / UI orientado a conversión',
+      'Edición de video (CapCut)',
+      'Edición de imagen (Photoshop)',
+    ],
   },
 ];
 
 export const ABOUT_INFO = {
-  name: 'Emi',
-  role: 'Full-Stack & Creative Developer',
-  bio: 'Construyo experiencias web rápidas, útiles e interactivas. Creé una app para publicar mascotas perdidas y encontradas que salió en Diario Jornada, Diario El Chubut y LU20 Radio Chubut.',
+  name: 'Emiliano Campos',
+  role: 'Product-Minded Frontend / Full-Stack Developer · React, TypeScript, Next.js & Three.js',
+  bio: 'Soy desarrollador web con +2 años de experiencia creando aplicaciones, dashboards, e-commerce y sistemas a medida pensados primero desde el usuario y el negocio. Combino desarrollo técnico con visión de producto, UX orientado a conversión y experiencia real haciendo crecer comunidades digitales.',
+  highlights: [
+    '💻 +2 años en GearthLogic creando apps web, dashboards administrativos, APIs REST y un plugin de E-Commerce a medida (WordPress / PHP) con carrito, checkout y pasarela de pagos reales.',
+    '🚀 Productos propios en producción: MambaQR (menú digital con IA, pedidos en mesa, fidelidad y Mercado Pago), Klonfark (e-commerce de ropa y suplementos), Cuki Nails y este Portfolio 3D multijugador.',
+    '🐾 Impacto social y medios: creé Mascotas Trelew, red comunitaria gratuita y geolocalizada destacada en Diario El Chubut, Diario Jornada, LU20 Radio Chubut y Radio 3.',
+    '⚽ Creador de contenido & Growth: construí una comunidad orgánica de +182.000 seguidores en fútbol entre Facebook, TikTok, Instagram y YouTube.',
+    '🌎 Desde Trelew, Chubut (Argentina) para todo el mundo · Inglés B2 · Abierto a equipos tech y proyectos web para negocios y empresas.',
+  ],
   press: [
-    'Diario Jornada',
     'Diario El Chubut',
+    'Diario Jornada',
     'LU20 Radio Chubut',
+    'Radio 3',
   ],
   skills: [
     'React',
     'TypeScript',
+    'Next.js',
+    'JavaScript',
+    'Tailwind CSS',
     'Three.js',
-    'React Three Fiber',
     'Node.js',
-    'CSS / Tailwind',
-    'Git',
-    'UI/UX',
+    'Supabase',
+    'SQL',
+    'PHP / WordPress',
+    'SEO',
+    'UX / UI',
   ],
 };
 
 export const CONTACT_INFO = {
-  email: 'tuemail@ejemplo.com',
-  whatsapp: 'https://wa.me/5492804000000?text=Hola%20Emi!%20Vi%20tu%20portfolio%203D%20y%20tengo%20un%20proyecto%20en%20mente',
-  github: 'https://github.com/tuusuario',
-  linkedin: 'https://linkedin.com/in/tuusuario',
+  email: 'emicampos1268@gmail.com',
+  whatsapp: 'https://wa.me/5492804198600?text=Hola%20Emi!%20Vi%20tu%20portfolio%203D%20y%20tengo%20un%20proyecto%20en%20mente',
+  cvUrl: '/cv-emiliano-campos.pdf',
+  github: 'https://github.com/emilianocampos',
+  linkedin: 'https://linkedin.com/in/emilianocampos',
   location: 'Trelew, Chubut, Argentina (Remoto)',
 };
 
 export const PRESS_MEDIA = {
   projectTitle: 'Mascotas Trelew · App de Mascotas Extraviadas',
   projectSummary:
-    'Creé esta web comunitaria gratuita y geolocalizada para ayudar a vecinos de Trelew y el Valle a reportar y reencontrar mascotas perdidas. El proyecto salió publicado en Diario El Chubut, Diario Jornada y LU20 Radio Chubut.',
+    'Creé esta web comunitaria gratuita y geolocalizada para ayudar a vecinos de Trelew y el Valle a reportar y reencontrar mascotas perdidas. El proyecto tuvo repercusión en diarios, radio, streaming y redes de Chubut.',
   projectUrl: 'https://mascotastrelew.vercel.app',
-  // Pegá acá el link de tu video en Instagram / TikTok / YouTube / Facebook
-  socialVideoUrl: 'https://instagram.com',
-  socialVideoLabel: 'Ver video en redes sociales',
-  // Guardá tu video grabado en: public/press/video-medios.mp4
+  socialVideoUrl: 'https://www.instagram.com/p/DeHcpsjllvv/',
+  socialVideoLabel: 'Ver mi nota en Instagram',
   localVideoUrl: '/press/video-medios.mp4',
   appearances: [
     {
-      id: 'diario',
-      outlet: 'Diario El Chubut · Nota Impresa',
+      id: 'elchubut',
+      outlet: 'Diario El Chubut · Nota Impresa y Web',
       role: 'Nota periodística destacada',
       summary: '“Una web gratuita creada en Trelew permite reportar y buscar mascotas extraviadas”.',
       imageUrl: '/press/diario-mascotas.jpg',
-    },
-    {
-      id: 'jornada',
-      outlet: 'Diario Jornada',
-      role: 'Cobertura regional',
-      summary: 'Difusión sobre el desarrollo y lanzamiento de Mascotas Trelew.',
-      imageUrl: '/press/diario-mascotas.jpg',
+      articleUrl:
+        'https://www.elchubut.com.ar/regionales/2026-10-4-20-42-0-una-web-gratuita-creada-en-trelew-permite-reportar-y-buscar-mascotas-extraviadas',
     },
     {
       id: 'lu20',
-      outlet: 'LU20 Radio Chubut',
+      outlet: 'LU20 Radio Chubut · Entrevista',
+      role: 'Video en YouTube',
+      summary: 'Charla en vivo en la radio contando cómo nació la idea y cómo funciona la plataforma.',
+      imageUrl: 'https://img.youtube.com/vi/pfKs4zRILP0/hqdefault.jpg',
+      articleUrl: 'https://www.youtube.com/watch?v=pfKs4zRILP0&t=242s',
+    },
+    {
+      id: 'jornada',
+      outlet: 'Diario Jornada · Jornada Stream',
       role: 'Entrevista en vivo',
-      summary: 'Charla en vivo en la radio contando cómo nació la idea y cómo funciona la app.',
-      imageUrl: '/press/lu20.jpg',
+      summary: 'Participación en Jornada Stream hablando sobre desarrollo web, creación de contenido y Mascotas Trelew.',
+      imageUrl: '/press/jornada-stream.jpg',
+      articleUrl:
+        'https://www.diariojornada.com.ar/425052/magazine/perdiste_o_encontraste_una_mascota_ahora_hay_una_web_para_publicarla',
+    },
+    {
+      id: 'radio3',
+      outlet: 'Radio 3 AM 780',
+      role: 'Cobertura regional',
+      summary: '“Un joven de Trelew creó una herramienta para ayudar a encontrar animales perdidos”.',
+      imageUrl: '/press/radio3.jpg',
+      articleUrl:
+        'https://www.facebook.com/61562530642369/posts/%EF%B8%8F-la-tecnolog%C3%ADa-al-servicio-del-amor-por-nuestras-mascotas-%EF%B8%8F-un-joven-de-trelew-/122157055856417688/',
     },
   ] as PressItem[],
 };

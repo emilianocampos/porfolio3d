@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
 import type { InteractiveZone, ZoneId } from '../../data/portfolioData';
 import { Character } from './Character';
+import { CinemaCamera } from './CinemaCamera';
 import { PhysicsProps } from './PhysicsProps';
 import { RemotePlayers } from './RemotePlayers';
 import { WaypointTracker } from './WaypointTracker';
@@ -11,6 +12,8 @@ import { WorldMap } from './WorldMap';
 interface SceneProps {
   activeZone: InteractiveZone | null;
   modalOpen: boolean;
+  cinemaMode: boolean;
+  cinemaLoop: boolean;
   resetPropsSignal: number;
   likesCount: number;
   localColor: string;
@@ -20,6 +23,9 @@ interface SceneProps {
   remoteEmotes: Record<string, { emoji: string; key: number }>;
   onZoneChange: (zone: InteractiveZone | null) => void;
   onArriveAutoWalk: (zoneId: ZoneId) => void;
+  onOpenPressImage: (imageUrl: string) => void;
+  onCinemaLoopRestart?: () => void;
+  onCinemaComplete?: () => void;
 }
 
 function detectMobileDevice(): boolean {
@@ -32,6 +38,8 @@ function detectMobileDevice(): boolean {
 export function Scene({
   activeZone,
   modalOpen,
+  cinemaMode,
+  cinemaLoop,
   resetPropsSignal,
   likesCount,
   localColor,
@@ -41,6 +49,9 @@ export function Scene({
   remoteEmotes,
   onZoneChange,
   onArriveAutoWalk,
+  onOpenPressImage,
+  onCinemaLoopRestart,
+  onCinemaComplete,
 }: SceneProps) {
   const isMobile = useMemo(() => detectMobileDevice(), []);
 
@@ -55,7 +66,7 @@ export function Scene({
         powerPreference: 'high-performance',
         stencil: false,
       }}
-      camera={{ position: [0, 9.5, 6.2], fov: isMobile ? 46 : 42, near: 0.2, far: 90 }}
+      camera={{ position: [0, 3.4, 4.8], fov: isMobile ? 46 : 42, near: 0.2, far: 90 }}
       className="canvas-fullscreen"
     >
       <color attach="background" args={['#111827']} />
@@ -112,6 +123,7 @@ export function Scene({
         activeZone={activeZone}
         resetSignal={resetPropsSignal}
         likesCount={likesCount}
+        onOpenPressImage={onOpenPressImage}
       />
       <PhysicsProps resetSignal={resetPropsSignal} />
       <RemotePlayers
@@ -120,8 +132,16 @@ export function Scene({
         remoteEmotes={remoteEmotes}
       />
       <WaypointTracker />
+      {cinemaMode && (
+        <CinemaCamera
+          loop={cinemaLoop}
+          onLoopRestart={onCinemaLoopRestart}
+          onComplete={onCinemaComplete}
+        />
+      )}
       <Character
-        disabled={modalOpen}
+        disabled={modalOpen || cinemaMode}
+        cinemaMode={cinemaMode}
         color={localColor}
         localEmote={localEmote}
         onZoneChange={onZoneChange}

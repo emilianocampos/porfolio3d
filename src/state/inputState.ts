@@ -45,7 +45,7 @@ export interface WaypointScreenData {
   isInside: boolean;
 }
 
-export const waypointScreenMap: Record<ZoneId, WaypointScreenData> = {
+const initialWaypointMap: Record<ZoneId, WaypointScreenData> = {
   projects: { id: 'projects', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   creator: { id: 'creator', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   about: { id: 'about', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
@@ -54,7 +54,25 @@ export const waypointScreenMap: Record<ZoneId, WaypointScreenData> = {
   reviews: { id: 'reviews', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   likes: { id: 'likes', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
   contact: { id: 'contact', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
+  minigame: { id: 'minigame', screenX: 0, screenY: 0, isOffscreen: false, angleRad: 0, distance: 0, isInside: false },
 };
+
+// Persist singleton across Vite HMR so WaypointTracker & RealtimeWaypoints always share the exact same live object
+const globalStore = globalThis as unknown as {
+  __portfolioWaypointMap?: Record<ZoneId, WaypointScreenData>;
+};
+if (!globalStore.__portfolioWaypointMap) {
+  globalStore.__portfolioWaypointMap = initialWaypointMap;
+} else {
+  for (const key of Object.keys(initialWaypointMap) as ZoneId[]) {
+    if (!globalStore.__portfolioWaypointMap[key]) {
+      globalStore.__portfolioWaypointMap[key] = initialWaypointMap[key];
+    }
+  }
+}
+
+export const waypointScreenMap: Record<ZoneId, WaypointScreenData> =
+  globalStore.__portfolioWaypointMap;
 
 export const remotePlayersMap = new Map<string, RemotePlayerState>();
 
@@ -81,6 +99,32 @@ export const navigationState: {
 } = {
   autoWalkTarget: null,
 };
+
+export interface GrabState {
+  grabRequested: boolean;
+  heldIndex: number | null;
+  canGrab: boolean;
+  listeners: Set<(held: boolean, canGrab: boolean) => void>;
+}
+
+const grabGlobalStore = globalThis as unknown as {
+  __portfolioGrabState?: GrabState;
+};
+if (!grabGlobalStore.__portfolioGrabState) {
+  grabGlobalStore.__portfolioGrabState = {
+    grabRequested: false,
+    heldIndex: null,
+    canGrab: false,
+    listeners: new Set(),
+  };
+}
+
+export const grabState: GrabState = grabGlobalStore.__portfolioGrabState;
+
+export function notifyGrabState(held: boolean, canGrab: boolean) {
+  grabState.canGrab = canGrab;
+  grabState.listeners.forEach((fn) => fn(held, canGrab));
+}
 
 export interface PropKickEvent {
   idx: number;

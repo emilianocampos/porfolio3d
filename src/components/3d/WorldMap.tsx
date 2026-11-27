@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { type InteractiveZone, ZONES } from '../../data/portfolioData';
+import {
+  type InteractiveZone,
+  SPAWN_PORTAL,
+  TRAMPOLINE,
+  ZONES,
+} from '../../data/portfolioData';
 import { PatrolDrone } from './PatrolDrone';
 
 interface WorldMapProps {
   activeZone: InteractiveZone | null;
   resetSignal: number;
   likesCount: number;
+  onOpenPressImage: (imageUrl: string) => void;
 }
 
 /**
@@ -24,6 +30,7 @@ function PressFrame({
   headline,
   accent,
   imageUrl,
+  onSelect,
 }: {
   position: [number, number, number];
   rotationY?: number;
@@ -33,6 +40,7 @@ function PressFrame({
   headline: string;
   accent: string;
   imageUrl: string;
+  onSelect?: () => void;
 }) {
   const [photoTexture, setPhotoTexture] = useState<THREE.Texture | null>(null);
 
@@ -104,7 +112,23 @@ function PressFrame({
   const activeMap = photoTexture ?? fallbackTexture;
 
   return (
-    <group position={position} rotation={[0, rotationY, 0]}>
+    <group
+      position={position}
+      rotation={[0, rotationY, 0]}
+      onClick={(e) => {
+        if (!onSelect) return;
+        e.stopPropagation();
+        onSelect();
+      }}
+      onPointerOver={(e) => {
+        if (!onSelect) return;
+        e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        if (onSelect) document.body.style.cursor = 'auto';
+      }}
+    >
       {/* Dark wood/metal frame */}
       <mesh castShadow>
         <boxGeometry args={[width + 0.18, height + 0.18, 0.08]} />
@@ -228,8 +252,8 @@ function DigitalLikeCounter({
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fda4af';
-    ctx.font = '700 26px system-ui, -apple-system, sans-serif';
-    ctx.fillText('♥  ME GUSTA EN VIVO', 256, 46);
+    ctx.font = '700 24px system-ui, -apple-system, sans-serif';
+    ctx.fillText('♥  CONTADOR DE ME GUSTA', 256, 46);
 
     // Unlit ghost LED digits behind active digits (real digital clock/counter look)
     const formatted = String(Math.max(0, likesCount)).padStart(5, '0');
@@ -275,43 +299,45 @@ function DigitalLikeCounter({
   );
 }
 
-/** Illuminated Contact Wall Board above Reception ("¿TENÉS UN PROYECTO EN MENTE?" + WhatsApp, LinkedIn, Email) */
+/** Illuminated Contact Wall Board above Reception ("¿TENÉS UN NEGOCIO O EMPRESA Y QUERÉS UN SISTEMA WEB?" + WhatsApp, LinkedIn, Email) */
 function ContactWallSign({ position }: { position: [number, number, number] }) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 768;
-    canvas.height = 420;
+    canvas.width = 840;
+    canvas.height = 460;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       // Sleek dark slate gradient background
-      const grad = ctx.createLinearGradient(0, 0, 768, 420);
+      const grad = ctx.createLinearGradient(0, 0, 840, 460);
       grad.addColorStop(0, '#0f172a');
       grad.addColorStop(1, '#1e293b');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 768, 420);
+      ctx.fillRect(0, 0, 840, 460);
 
-      // Amber/gold accent frame matching Contacto zone
+      // Amber/gold accent frame with generous inner padding
       ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 8;
-      ctx.strokeRect(10, 10, 748, 400);
+      ctx.lineWidth = 7;
+      ctx.strokeRect(18, 18, 804, 424);
 
-      // Title
+      // Bigger, high-impact two-line headline
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 42px system-ui, -apple-system, sans-serif';
-      ctx.fillText('¿TENÉS UN PROYECTO EN MENTE?', 384, 78);
-
-      // Subtitle
+      ctx.font = '900 44px system-ui, -apple-system, sans-serif';
+      ctx.fillText('¿TENÉS UN NEGOCIO O EMPRESA', 420, 76);
       ctx.fillStyle = '#fbbf24';
-      ctx.font = '700 24px system-ui, -apple-system, sans-serif';
-      ctx.fillText('¡CONTACTAME Y LO HACEMOS REALIDAD!', 384, 128);
+      ctx.fillText('Y QUERÉS UN SISTEMA WEB?', 420, 128);
+
+      // Crisp subtitle
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '700 22px system-ui, -apple-system, sans-serif';
+      ctx.fillText('¡CONTACTAME Y LO HACEMOS REALIDAD!', 420, 174);
 
       // 3 crisp rounded icon cards: WhatsApp, LinkedIn, Email
       const cards = [
-        { x: 154, color: '#25D366', kind: 'whatsapp' as const, label: 'WhatsApp' },
-        { x: 384, color: '#0a66c2', kind: 'linkedin' as const, label: 'LinkedIn' },
-        { x: 614, color: '#f59e0b', kind: 'email' as const, label: 'Email' },
+        { x: 174, color: '#25D366', kind: 'whatsapp' as const, label: 'WhatsApp' },
+        { x: 420, color: '#0a66c2', kind: 'linkedin' as const, label: 'LinkedIn' },
+        { x: 666, color: '#f59e0b', kind: 'email' as const, label: 'Email' },
       ];
 
       const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
@@ -331,34 +357,30 @@ function ContactWallSign({ position }: { position: [number, number, number] }) {
       for (const c of cards) {
         // Card tile background
         ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        drawRoundRect(c.x - 95, 178, 190, 196, 22);
+        drawRoundRect(c.x - 98, 210, 196, 198, 22);
         ctx.fill();
         ctx.strokeStyle = c.color;
         ctx.lineWidth = 4;
         ctx.stroke();
 
         if (c.kind === 'whatsapp') {
-          // Real WhatsApp logo: #25D366 circle + white speech-bubble outline + white phone handset
           ctx.save();
-          ctx.translate(c.x, 250);
+          ctx.translate(c.x, 282);
 
-          // Green circular badge
           ctx.fillStyle = '#25D366';
           ctx.beginPath();
-          ctx.arc(0, 0, 50, 0, Math.PI * 2);
+          ctx.arc(0, 0, 48, 0, Math.PI * 2);
           ctx.fill();
 
-          // Authentic WhatsApp white speech-bubble ring with bottom-left tail
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 6.5;
           ctx.lineJoin = 'round';
           ctx.beginPath();
-          ctx.arc(0, -1, 31, Math.PI * 0.78, Math.PI * 2.58, false);
-          ctx.lineTo(-34, 33);
+          ctx.arc(0, -1, 30, Math.PI * 0.78, Math.PI * 2.58, false);
+          ctx.lineTo(-33, 32);
           ctx.closePath();
           ctx.stroke();
 
-          // Crisp white classic WhatsApp phone handset inside
           ctx.save();
           ctx.translate(-22, -23);
           ctx.scale(1.85, 1.85);
@@ -373,34 +395,33 @@ function ContactWallSign({ position }: { position: [number, number, number] }) {
         } else if (c.kind === 'linkedin') {
           ctx.fillStyle = c.color;
           ctx.beginPath();
-          ctx.arc(c.x, 250, 48, 0, Math.PI * 2);
+          ctx.arc(c.x, 282, 46, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.fillStyle = '#ffffff';
-          ctx.font = '900 50px system-ui, -apple-system, sans-serif';
-          ctx.fillText('in', c.x, 253);
+          ctx.font = '900 48px system-ui, -apple-system, sans-serif';
+          ctx.fillText('in', c.x, 285);
         } else {
           ctx.fillStyle = c.color;
           ctx.beginPath();
-          ctx.arc(c.x, 250, 48, 0, Math.PI * 2);
+          ctx.arc(c.x, 282, 46, 0, Math.PI * 2);
           ctx.fill();
 
-          // Crisp white vector envelope
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 5;
           ctx.lineJoin = 'round';
-          ctx.strokeRect(c.x - 24, 233, 48, 34);
+          ctx.strokeRect(c.x - 24, 265, 48, 34);
           ctx.beginPath();
-          ctx.moveTo(c.x - 24, 234);
-          ctx.lineTo(c.x, 253);
-          ctx.lineTo(c.x + 24, 234);
+          ctx.moveTo(c.x - 24, 266);
+          ctx.lineTo(c.x, 285);
+          ctx.lineTo(c.x + 24, 266);
           ctx.stroke();
         }
 
         // Label
         ctx.fillStyle = '#f8fafc';
         ctx.font = '700 26px system-ui, -apple-system, sans-serif';
-        ctx.fillText(c.label, c.x, 336);
+        ctx.fillText(c.label, c.x, 368);
       }
     }
 
@@ -596,7 +617,378 @@ function StudioFloorLogos({ position }: { position: [number, number, number] }) 
   );
 }
 
-/** Floating glowing 3D icon above a PC / station */
+/** Glowing wall sign with generous inner padding: "¿QUERÉS TU PÁGINA WEB 3D PARA TU NEGOCIO? ¡CONTACTAME!" */
+function Promo3DSign({
+  position,
+  rotationY = 0,
+}: {
+  position: [number, number, number];
+  rotationY?: number;
+}) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 840;
+    canvas.height = 380;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const grad = ctx.createLinearGradient(0, 0, 840, 380);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(0.5, '#1e1b4b');
+      grad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 840, 380);
+
+      // Generous outer margin & glowing cyan-violet inner frame
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 7;
+      ctx.strokeRect(24, 24, 792, 332);
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 33px system-ui, -apple-system, sans-serif';
+      ctx.fillText('¿QUERÉS TU PÁGINA WEB 3D', 420, 104);
+      ctx.fillText('PARA TU NEGOCIO?', 420, 154);
+
+      // Vibrant CTA pill with comfortable padding
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.roundRect(240, 218, 360, 74, 37);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 32px system-ui, -apple-system, sans-serif';
+      ctx.fillText('¡CONTACTAME!', 420, 256);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      texture.dispose();
+    };
+  }, [texture]);
+
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <mesh>
+        <boxGeometry args={[4.4, 2.05, 0.12]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, 0.068]}>
+        <planeGeometry args={[4.2, 1.88]} />
+        <meshStandardMaterial
+          map={texture}
+          emissiveMap={texture}
+          emissive="#ffffff"
+          emissiveIntensity={0.55}
+          roughness={0.22}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Auto-cycling 3D Smart TV slideshow showcasing Emiliano's web projects (supports real image URLs + crisp fallback cards) */
+function ProjectSlideshowTV({
+  position,
+  rotationY = 0,
+}: {
+  position: [number, number, number];
+  rotationY?: number;
+}) {
+  const { canvas, texture } = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 640;
+    c.height = 360;
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return { canvas: c, texture: t };
+  }, []);
+
+  useEffect(() => {
+    const slides: Array<{
+      badge: string;
+      title: string;
+      subtitle: string;
+      url: string;
+      c1: string;
+      c2: string;
+      imageUrl?: string;
+    }> = [
+        {
+          badge: 'SAAS GASTRONÓMICO · IA + MERCADO PAGO',
+          title: 'MambaQR · Menú Digital',
+          subtitle: 'Pedidos en Mesa · Mozo & Cuenta · Fidelidad y Sellos',
+          url: 'mambaqr.vercel.app',
+          c1: '#4f46e5',
+          c2: '#06b6d4',
+          imageUrl: '/projects/mambaqr.png',
+        },
+        {
+          badge: 'LANDING PAGE · SALÓN DE UÑAS',
+          title: 'Cuki Nails',
+          subtitle: 'Home Studio · Galería · Reserva de Turnos',
+          url: 'cukinails.netlify.app',
+          c1: '#db2777',
+          c2: '#f472b6',
+          imageUrl: '/projects/cukinails.jpg',
+        },
+        {
+          badge: 'APP PARA LA COMUNIDAD · TRELEW',
+          title: 'Mascotas Trelew',
+          subtitle: 'Mapa interactivo · Alertas WhatsApp · Carteles QR',
+          url: 'mascotastrelew.vercel.app',
+          c1: '#ea580c',
+          c2: '#dc2626',
+          imageUrl: '/projects/mascotas-trelew.jpg',
+        },
+        {
+          badge: 'E-COMMERCE · ROPA Y SUPLEMENTOS',
+          title: 'Klonfark Store',
+          subtitle: 'Indumentaria Deportivo-Urbana · Suplementos · Catálogo',
+          url: 'klonfark.com',
+          c1: '#111827',
+          c2: '#374151',
+          imageUrl: '/projects/klonfark.jpg',
+        },
+        {
+          badge: 'WEB APP · SALUD Y FITNESS',
+          title: 'Calculadora IMC',
+          subtitle: 'Índice de Masa Corporal en Segundos',
+          url: 'imccalculater.netlify.app',
+          c1: '#4f46e5',
+          c2: '#7c3aed',
+          imageUrl: '/projects/imc.jpg',
+        },
+      ];
+
+    const loadedImages = new Map<string, HTMLImageElement>();
+    let idx = 0;
+
+    const drawSlide = () => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const s = slides[idx];
+
+      // Dark Smart TV frame background
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, 640, 360);
+
+      // Browser top bar with traffic lights + URL
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, 640, 42);
+      ['#ef4444', '#f59e0b', '#22c55e'].forEach((col, i) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(24 + i * 20, 21, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(100, 9, 440, 24, 12);
+      ctx.fill();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 14px "Consolas", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`https://${s.url}`, 320, 21);
+
+      const img = s.imageUrl ? loadedImages.get(s.imageUrl) : undefined;
+      if (img) {
+        ctx.drawImage(img, 0, 42, 640, 282);
+      } else {
+        // Gradient hero card inside browser
+        const grad = ctx.createLinearGradient(28, 60, 612, 310);
+        grad.addColorStop(0, s.c1);
+        grad.addColorStop(1, s.c2);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(28, 60, 584, 248, 22);
+        ctx.fill();
+
+        // Badge pill
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+        ctx.beginPath();
+        ctx.roundRect(180, 92, 280, 34, 17);
+        ctx.fill();
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '800 14px system-ui, sans-serif';
+        ctx.fillText(s.badge, 320, 109);
+
+        // Main project title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 42px system-ui, -apple-system, sans-serif';
+        ctx.fillText(s.title, 320, 178);
+
+        // Subtitle
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.font = '600 20px system-ui, -apple-system, sans-serif';
+        ctx.fillText(s.subtitle, 320, 232);
+      }
+
+      // Slide indicator dots at bottom
+      slides.forEach((_, di) => {
+        ctx.fillStyle = di === idx ? '#38bdf8' : 'rgba(148, 163, 184, 0.4)';
+        ctx.beginPath();
+        ctx.arc(284 + di * 24, 340, di === idx ? 6 : 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      texture.needsUpdate = true;
+    };
+
+    slides.forEach((s) => {
+      if (!s.imageUrl) return;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        loadedImages.set(s.imageUrl!, img);
+        drawSlide();
+      };
+      img.src = s.imageUrl;
+    });
+
+    drawSlide();
+    const timer = window.setInterval(() => {
+      idx = (idx + 1) % slides.length;
+      drawSlide();
+    }, 3500);
+    return () => {
+      window.clearInterval(timer);
+      texture.dispose();
+    };
+  }, [canvas, texture]);
+
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      {/* Sturdy wide Smart TV stand base resting on Proyectos desk */}
+      <mesh position={[0, 0.03, 0]} castShadow>
+        <boxGeometry args={[1.08, 0.06, 0.42]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.16, -0.02]} castShadow>
+        <boxGeometry args={[0.18, 0.26, 0.1]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Large ultra-slim 16:9 Smart TV frame */}
+      <mesh position={[0, 1.18, 0]} castShadow>
+        <boxGeometry args={[3.35, 1.92, 0.1]} />
+        <meshStandardMaterial color="#090d16" metalness={0.55} roughness={0.28} />
+      </mesh>
+      {/* Big glowing TV screen */}
+      <mesh position={[0, 1.18, 0.056]}>
+        <planeGeometry args={[3.18, 1.78]} />
+        <meshStandardMaterial
+          map={texture}
+          emissiveMap={texture}
+          emissive="#ffffff"
+          emissiveIntensity={0.66}
+          roughness={0.18}
+        />
+      </mesh>
+      {/* Subtle cyan standby/live LED on bottom bezel */}
+      <mesh position={[1.48, 0.27, 0.054]}>
+        <circleGeometry args={[0.02, 10]} />
+        <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={2.0} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Real-time Digital LED Clock showing the visitor's local device time (HH:MM:SS) */
+function DigitalWallClock({ position }: { position: [number, number, number] }) {
+  const { canvas, texture } = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 128;
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return { canvas: c, texture: t };
+  }, []);
+
+  useEffect(() => {
+    const drawTime = () => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+
+      // Matte black LED panel
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, 256, 128);
+
+      // Sleek cyan border
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(5, 5, 246, 118);
+
+      // Ghost unlit 88:88 digits
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '900 54px "Consolas", "Courier New", monospace';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.fillText('88:88', 112, 56);
+
+      // Lit glowing HH:MM digits
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText(`${hh}:${mm}`, 112, 56);
+
+      // Seconds indicator on the right
+      ctx.font = '800 26px "Consolas", "Courier New", monospace';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(`:${ss}`, 214, 62);
+      ctx.shadowBlur = 0;
+
+      // Local date label at bottom
+      const dateStr = now.toLocaleDateString('es-AR', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+      }).toUpperCase();
+      ctx.font = '700 17px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(dateStr, 128, 102);
+
+      texture.needsUpdate = true;
+    };
+
+    drawTime();
+    const id = window.setInterval(drawTime, 1000);
+    return () => {
+      window.clearInterval(id);
+      texture.dispose();
+    };
+  }, [canvas, texture]);
+
+  return (
+    <group position={position}>
+      <mesh>
+        <boxGeometry args={[1.08, 0.56, 0.08]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, 0.046]}>
+        <planeGeometry args={[0.98, 0.48]} />
+        <meshStandardMaterial
+          map={texture}
+          emissiveMap={texture}
+          emissive="#ffffff"
+          emissiveIntensity={0.95}
+          roughness={0.2}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Floating glowing GTA-style downward marker cone above each interactive station */
 function FloatingStationIcon({
   position,
   color,
@@ -607,47 +999,34 @@ function FloatingStationIcon({
   isActive: boolean;
 }) {
   const iconRef = useRef<THREE.Group>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const speed = isActive ? 2.4 : 1.0;
+    const speed = isActive ? 2.6 : 1.3;
     if (iconRef.current) {
       iconRef.current.rotation.y = t * speed;
-      iconRef.current.position.y = position[1] + Math.sin(t * 2.8) * 0.12;
-      const targetScale = isActive ? 1.22 : 1;
+      iconRef.current.position.y = position[1] + Math.sin(t * 3.6) * 0.14;
+      const targetScale = isActive ? 1.25 : 1;
       const nextScale = THREE.MathUtils.lerp(
         iconRef.current.scale.x,
         targetScale,
-        0.12
+        0.14
       );
       iconRef.current.scale.setScalar(nextScale);
-    }
-    if (ringRef.current) {
-      ringRef.current.rotation.z = -t * speed * 0.8;
     }
   });
 
   return (
     <group ref={iconRef} position={position}>
-      {/* Glowing diamond/crystal core */}
-      <mesh castShadow>
-        <octahedronGeometry args={[0.26, 0]} />
+      {/* Compact GTA-style inverted 4-sided pyramid/cone pointing straight down */}
+      <mesh rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.24, 0.44, 4]} />
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={isActive ? 2.2 : 1.1}
-          roughness={0.15}
-          metalness={0.35}
-        />
-      </mesh>
-      {/* Orbiting glowing halo ring */}
-      <mesh ref={ringRef} rotation={[Math.PI / 2.6, 0, 0]}>
-        <torusGeometry args={[0.38, 0.032, 10, 28]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={isActive ? 2.0 : 0.9}
+          emissiveIntensity={isActive ? 2.2 : 1.25}
+          roughness={0.18}
+          metalness={0.25}
         />
       </mesh>
     </group>
@@ -764,9 +1143,9 @@ function ZonePad({
         </mesh>
       </group>
 
-      {/* Floating 3D icon directly above the table circle and right below the label */}
+      {/* Floating 3D icon directly above the table circle (or custom iconY) */}
       <FloatingStationIcon
-        position={[padX, zone.labelPosition[1] - 0.68, padZ]}
+        position={[padX, zone.iconY ?? zone.labelPosition[1] - 0.68, padZ]}
         color={zone.color}
         isActive={isActive}
       />
@@ -774,7 +1153,111 @@ function ZonePad({
   );
 }
 
-export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps) {
+/** Glowing 3D Sci-Fi Portal that teleports the robot back to the Oscars red carpet spawn pad */
+function SpawnTeleportPortal({ position }: { position: [number, number, number] }) {
+  const vortexRef = useRef<THREE.Mesh>(null);
+
+  const labelTex = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 384;
+    canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 384, 96);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(6, 6, 372, 84);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#67e8f9';
+      ctx.font = '900 30px system-ui, -apple-system, sans-serif';
+      ctx.fillText('PORTAL · INICIO', 192, 49);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      labelTex.dispose();
+    };
+  }, [labelTex]);
+
+  useFrame((_, rawDelta) => {
+    if (vortexRef.current) {
+      vortexRef.current.rotation.z -= Math.min(rawDelta, 0.05) * 2.2;
+    }
+  });
+
+  return (
+    <group position={position} rotation={[0, Math.PI, 0]}>
+      {/* Metallic base platform */}
+      <mesh position={[0, 0.08, 0]} receiveShadow>
+        <cylinderGeometry args={[1.38, 1.52, 0.16, 24]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.65} roughness={0.3} />
+      </mesh>
+      {/* Glowing floor ring */}
+      <mesh position={[0, 0.168, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.02, 1.24, 28]} />
+        <meshStandardMaterial
+          color="#38bdf8"
+          emissive="#22d3ee"
+          emissiveIntensity={1.9}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Outer metallic portal ring */}
+      <mesh position={[0, 1.55, 0]} castShadow>
+        <torusGeometry args={[1.25, 0.14, 14, 36]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.75} roughness={0.25} />
+      </mesh>
+      {/* Inner neon cyan-violet energy ring */}
+      <mesh position={[0, 1.55, 0]}>
+        <torusGeometry args={[1.1, 0.055, 10, 36]} />
+        <meshStandardMaterial
+          color="#a855f7"
+          emissive="#a855f7"
+          emissiveIntensity={2.2}
+        />
+      </mesh>
+      {/* Spinning energy vortex disc */}
+      <mesh ref={vortexRef} position={[0, 1.55, 0]}>
+        <circleGeometry args={[1.06, 28]} />
+        <meshStandardMaterial
+          color="#38bdf8"
+          emissive="#6366f1"
+          emissiveIntensity={1.65}
+          transparent
+          opacity={0.72}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Floating top sign: PORTAL · INICIO */}
+      <mesh position={[0, 3.15, 0]}>
+        <boxGeometry args={[2.1, 0.52, 0.08]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 3.15, 0.046]}>
+        <planeGeometry args={[1.98, 0.44]} />
+        <meshStandardMaterial
+          map={labelTex}
+          emissiveMap={labelTex}
+          emissive="#ffffff"
+          emissiveIntensity={0.8}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+export function WorldMap({
+  activeZone,
+  resetSignal,
+  likesCount,
+  onOpenPressImage,
+}: WorldMapProps) {
   return (
     <group>
       {/* === FLOOR & ARCHITECTURAL DIORAMA BASE (Expanded 37.6 x 29.2 Office) === */}
@@ -877,22 +1360,28 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
         <meshStandardMaterial color="#dce4ee" roughness={0.75} />
       </mesh>
 
-      {/* Google 4-color signature neon light bars along upper back wall */}
-      {[
-        { x: -11.2, c: '#4285F4' },
-        { x: -3.8, c: '#EA4335' },
-        { x: 3.8, c: '#FBBC05' },
-        { x: 11.2, c: '#34A853' },
-      ].map((bar, i) => (
-        <mesh key={i} position={[bar.x, 5.5, -11.62]}>
-          <boxGeometry args={[6.2, 0.16, 0.08]} />
-          <meshStandardMaterial
-            color={bar.c}
-            emissive={bar.c}
-            emissiveIntensity={1.2}
-          />
-        </mesh>
-      ))}
+      {/* Sleek glowing LED baseboard strips along floor + vertical corner LED tubes */}
+      <mesh position={[1.75, 0.12, -11.62]}>
+        <boxGeometry args={[37.2, 0.08, 0.06]} />
+        <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={1.4} />
+      </mesh>
+      <mesh position={[-16.62, 0.12, 2.55]}>
+        <boxGeometry args={[0.06, 0.08, 28.4]} />
+        <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.4} />
+      </mesh>
+      {/* 3 vertical corner LED tubes (inner back-left corner + back-right & front-left wall ends) */}
+      <mesh position={[-16.58, 2.95, -11.58]}>
+        <boxGeometry args={[0.1, 5.7, 0.1]} />
+        <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={1.75} />
+      </mesh>
+      <mesh position={[20.35, 2.95, -11.58]}>
+        <boxGeometry args={[0.1, 5.7, 0.1]} />
+        <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={1.75} />
+      </mesh>
+      <mesh position={[-16.58, 2.95, 16.95]}>
+        <boxGeometry args={[0.1, 5.7, 0.1]} />
+        <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.75} />
+      </mesh>
 
       {/* Blue tech accent wall + Hero Sign */}
       <mesh position={[0.2, 1.55, -11.62]}>
@@ -901,9 +1390,9 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
       </mesh>
       <WallHeroSign position={[0.2, 4.18, -11.58]} />
 
-      {/* === JIU-JITSU BELT WALL DISPLAY RACK (Centered, light bamboo for crisp contrast) === */}
+      {/* === JIU-JITSU BELT WALL DISPLAY RACK (Back-left wall above guitars, between blinds & blue wall) === */}
       {/* Belts themselves are destructible physics props in PhysicsProps.tsx */}
-      <group position={[0.2, 1.85, -11.55]}>
+      <group position={[-4.9, 2.75, -11.55]}>
         {/* Light natural bamboo backboard so Black, Brown & White belts all pop clearly */}
         <mesh receiveShadow>
           <boxGeometry args={[2.15, 1.85, 0.06]} />
@@ -947,7 +1436,7 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
         </mesh>
       </group>
 
-      {/* === MURO DE PRENSA EN LA PARED (Recorte unificado del diario + LU20) === */}
+      {/* === MURO DE PRENSA EN LA PARED + CARTEL PROMO 3D A LA DERECHA DEL DIARIO === */}
       <PressFrame
         position={[-16.62, 4.18, -1.0]}
         rotationY={Math.PI / 2}
@@ -957,12 +1446,14 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
         headline="Mascotas Trelew · Emiliano Campos"
         accent="#1d4ed8"
         imageUrl="/press/diario-mascotas.jpg"
+        onSelect={() => onOpenPressImage('/press/diario-mascotas.jpg')}
       />
+      <Promo3DSign position={[-16.62, 3.85, -7.2]} rotationY={Math.PI / 2} />
       {/* === CARTEL DE CONTACTO ARRIBA DE RECEPCIÓN (WhatsApp, LinkedIn, Email) === */}
-      <ContactWallSign position={[5.6, 3.65, -11.58]} />
+      <ContactWallSign position={[5.8, 4.15, -11.58]} />
 
-      {/* === CONTADOR DIGITAL LED DE ME GUSTA EN LA PARED === */}
-      <DigitalLikeCounter position={[11.6, 3.65, -11.58]} likesCount={likesCount} />
+      {/* === CONTADOR DE ME GUSTA EN LA PARED (al lado de Contacto) === */}
+      <DigitalLikeCounter position={[10.8, 4.15, -11.58]} likesCount={likesCount} />
 
       {/* Pedestal interactivo para dejar Me Gusta */}
       <group position={[8.8, 0, -9.2]}>
@@ -981,7 +1472,7 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
         </mesh>
       </group>
 
-      {/* White pillar with clock (positioned to the right of the Oscars red carpet) */}
+      {/* White pillar with live digital device clock (to the right of the Oscars red carpet) */}
       <group position={[3.6, 0, -1.65]}>
         <mesh position={[0, 3.0, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.2, 6.0, 1.2]} />
@@ -991,14 +1482,7 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
           <boxGeometry args={[1.45, 0.24, 1.45]} />
           <meshStandardMaterial color="#ffffff" roughness={0.5} />
         </mesh>
-        <mesh position={[0, 3.85, 0.62]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.4, 0.4, 0.08, 24]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.35} />
-        </mesh>
-        <mesh position={[0, 3.85, 0.67]}>
-          <circleGeometry args={[0.34, 24]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.4} />
-        </mesh>
+        <DigitalWallClock position={[0, 3.85, 0.62]} />
         <mesh position={[0, 2.75, 0.62]}>
           <planeGeometry args={[0.58, 0.74]} />
           <meshStandardMaterial color="#38bdf8" roughness={0.5} />
@@ -1006,20 +1490,11 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
       </group>
 
       {/* ================================================================ */}
-      {/* 1. ZONA LOUNGE — "SOBRE MÍ" (Back-Left)                          */}
+      {/* 1. ZONA LOUNGE — Sillón & Puff (Coffee table removed for Gamer Setup) */}
       {/* ================================================================ */}
       <group>
-        <mesh position={[-9.5, 0.014, -6.5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <planeGeometry args={[7.8, 5.2]} />
-          <meshStandardMaterial color="#4285F4" roughness={0.92} />
-        </mesh>
-        <mesh position={[-9.5, 0.016, -6.5]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[5.2, 3.2]} />
-          <meshStandardMaterial color="#93c5fd" roughness={0.92} />
-        </mesh>
-
         {/* Navy armchair */}
-        <group position={[-13.1, 0, -9.35]} rotation={[0, 0.25, 0]}>
+        <group position={[-13.5, 0, -9.35]} rotation={[0, 0.25, 0]}>
           <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
             <boxGeometry args={[1.65, 0.65, 1.35]} />
             <meshStandardMaterial color="#1e3a5f" roughness={0.75} />
@@ -1037,45 +1512,15 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
             <meshStandardMaterial color="#172e4c" roughness={0.75} />
           </mesh>
         </group>
-
-        {/* Red beanbag */}
-        <mesh position={[-5.4, 0.55, -9.2]} scale={[1.15, 0.82, 1.0]} castShadow>
-          <sphereGeometry args={[0.88, 18, 16]} />
-          <meshStandardMaterial color="#EA4335" roughness={0.8} />
-        </mesh>
-
-        {/* Coffee table */}
-        <group position={[-9.5, 0, -7.2]}>
-          <mesh position={[0, 0.56, 0]} castShadow receiveShadow>
-            <boxGeometry args={[2.2, 0.08, 1.2]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.1} />
-          </mesh>
-          {[
-            [-1.0, 0.28, -0.5],
-            [1.0, 0.28, -0.5],
-            [-1.0, 0.28, 0.5],
-            [1.0, 0.28, 0.5],
-          ].map((p, i) => (
-            <mesh key={i} position={p as [number, number, number]} castShadow>
-              <boxGeometry args={[0.06, 0.56, 0.06]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.5} />
-            </mesh>
-          ))}
-          <PottedPlant position={[-0.7, 0.6, 0]} scale={0.42} potColor="#f472b6" />
-          <mesh position={[0.6, 0.69, 0.1]} castShadow>
-            <cylinderGeometry args={[0.08, 0.08, 0.16, 12]} />
-            <meshStandardMaterial color="#FBBC05" roughness={0.3} />
-          </mesh>
-        </group>
       </group>
 
       {/* ================================================================ */}
-      {/* 2. ZONA MEDIOS — Mesa de Prensa (Mid-Left Wall)                  */}
+      {/* 2. ZONA MEDIOS — Mesa Blanca de Prensa (Mid-Left Wall)           */}
       {/* ================================================================ */}
       <group position={[-15.4, 0, -1.0]}>
         <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.8, 0.12, 2.7]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.25} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.28} metalness={0.08} />
         </mesh>
         {[
           [-0.75, 0.41, -1.15],
@@ -1174,27 +1619,12 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
       </group>
 
       {/* ================================================================ */}
-      {/* 4. ZONA DEV LAB — "PROYECTOS" (Front-Right, pushed toward edge)  */}
+      {/* 4. ZONA DEV LAB — "PROYECTOS" (Mesa girada mirando alfombra +    */}
+      {/*    Gran Smart TV + Rack de Servidor con cables)                  */}
       {/* ================================================================ */}
       <group>
-        <group position={[9.6, 0, 6.2]}>
-          <mesh position={[0, 0.95, 0]} castShadow receiveShadow>
-            <boxGeometry args={[1.4, 1.9, 3.7]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.35} />
-          </mesh>
-          {[0.45, 0.8, 1.15, 1.5].map((y, i) => (
-            <mesh key={i} position={[0.72, y, -0.9]}>
-              <boxGeometry args={[0.04, 0.08, 1.1]} />
-              <meshStandardMaterial
-                color={i % 2 === 0 ? '#34A853' : '#38bdf8'}
-                emissive={i % 2 === 0 ? '#34A853' : '#38bdf8'}
-                emissiveIntensity={1.6}
-              />
-            </mesh>
-          ))}
-        </group>
-
-        <group position={[14.8, 0, 7.6]}>
+        {/* Wooden desk rotated -90° so the Big Smart TV faces straight toward the red carpet (-X) */}
+        <group position={[10.8, 0, 2.8]} rotation={[0, -Math.PI / 2, 0]}>
           <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
             <boxGeometry args={[5.1, 0.12, 2.0]} />
             <meshStandardMaterial color="#c2854c" roughness={0.55} />
@@ -1210,193 +1640,281 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
               <meshStandardMaterial color="#1e293b" metalness={0.5} roughness={0.35} />
             </mesh>
           ))}
+          {/* Big Smart TV facing -X (world) toward the Oscars red carpet */}
+          <ProjectSlideshowTV position={[0, 0.88, -0.22]} rotationY={0} />
         </group>
 
-        <OfficeChair position={[14.8, 0, 6.0]} rotationY={0.15} color="#4285F4" />
-      </group>
+        {/* Blue ergonomic chair behind the rotated desk */}
+        <OfficeChair position={[12.4, 0, 2.8]} rotationY={-Math.PI / 2} color="#4285F4" />
 
-      {/* ================================================================ */}
-      {/* 4B. STREAMER & RECORDING STUDIO DESK (Mid-Right, near edge)      */}
-      {/* ================================================================ */}
-      <group>
-        {/* Studio acoustic rug with neon purple border */}
-        <mesh position={[17.2, 0.014, 0.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <planeGeometry args={[5.2, 5.4]} />
-          <meshStandardMaterial color="#1e1b4b" roughness={0.9} />
-        </mesh>
-        <mesh position={[14.62, 0.02, 0.8]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.08, 5.4]} />
-          <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.5} />
-        </mesh>
-        {/* Real Facebook, YouTube, TikTok & Instagram logos printed on the studio floor */}
-        <StudioFloorLogos position={[15.18, 0.024, 0.8]} />
-
-        {/* Main White Studio Desk (walkable topY = 0.88) */}
-        <group position={[17.7, 0, 0.8]}>
-          {/* Tabletop */}
-          <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
-            <boxGeometry args={[2.2, 0.12, 3.7]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.28} metalness={0.08} />
+        {/* Detailed 3D IT Server Rack with server blades, LEDs & colorful patch cables */}
+        <group position={[11.0, 0, -0.75]} rotation={[0, -Math.PI / 2, 0]}>
+          {/* Main matte-black steel rack chassis */}
+          <mesh position={[0, 1.15, 0]} castShadow receiveShadow>
+            <boxGeometry args={[1.1, 2.3, 1.05]} />
+            <meshStandardMaterial color="#0f172a" metalness={0.55} roughness={0.38} />
           </mesh>
-          {/* RGB Neon Edge Strip (purple/magenta) */}
-          <mesh position={[-1.11, 0.82, 0]}>
-            <boxGeometry args={[0.04, 0.05, 3.68]} />
-            <meshStandardMaterial color="#c084fc" emissive="#a855f7" emissiveIntensity={2.0} />
-          </mesh>
-          {/* Desk Legs */}
-          {[
-            [-0.95, 0.41, -1.65],
-            [0.95, 0.41, -1.65],
-            [-0.95, 0.41, 1.65],
-            [0.95, 0.41, 1.65],
-          ].map((p, i) => (
-            <mesh key={i} position={p as [number, number, number]} castShadow>
-              <boxGeometry args={[0.1, 0.82, 0.1]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.55} roughness={0.3} />
+          {/* Metallic silver vertical mounting rails on front */}
+          {[-0.48, 0.48].map((rx, ri) => (
+            <mesh key={ri} position={[rx, 1.15, 0.53]}>
+              <boxGeometry args={[0.06, 2.2, 0.03]} />
+              <meshStandardMaterial color="#64748b" metalness={0.75} roughness={0.28} />
             </mesh>
           ))}
-
-          {/* Left & Right KRK-style Studio Monitor Speakers */}
-          {[-1.48, 1.48].map((dz, idx) => (
-            <group key={idx} position={[0.45, 1.12, dz]} rotation={[0, idx === 0 ? -0.25 : 0.25, 0]}>
-              <mesh castShadow>
-                <boxGeometry args={[0.38, 0.48, 0.34]} />
-                <meshStandardMaterial color="#111827" roughness={0.45} />
+          {/* 5 stacked 2U server blades with ventilation slots & status LEDs */}
+          {[0.38, 0.74, 1.1, 1.46, 1.82].map((by, bi) => (
+            <group key={bi} position={[0, by, 0.535]}>
+              <mesh>
+                <boxGeometry args={[0.88, 0.26, 0.04]} />
+                <meshStandardMaterial color="#1e293b" metalness={0.45} roughness={0.4} />
               </mesh>
-              {/* Yellow woofer cone */}
-              <mesh position={[-0.195, -0.06, 0]} rotation={[0, -Math.PI / 2, 0]}>
-                <circleGeometry args={[0.11, 16]} />
-                <meshStandardMaterial color="#facc15" roughness={0.35} />
+              {/* Drive bays / vent stripe */}
+              <mesh position={[-0.14, 0, 0.022]}>
+                <boxGeometry args={[0.48, 0.12, 0.01]} />
+                <meshStandardMaterial color="#090d16" roughness={0.8} />
               </mesh>
-              {/* Tweeter */}
-              <mesh position={[-0.195, 0.12, 0]} rotation={[0, -Math.PI / 2, 0]}>
-                <circleGeometry args={[0.05, 12]} />
-                <meshStandardMaterial color="#334155" roughness={0.3} />
+              {/* Active green/cyan/amber status LEDs */}
+              <mesh position={[0.24, 0.04, 0.024]}>
+                <boxGeometry args={[0.06, 0.04, 0.01]} />
+                <meshStandardMaterial
+                  color={bi % 2 === 0 ? '#22c55e' : '#38bdf8'}
+                  emissive={bi % 2 === 0 ? '#22c55e' : '#38bdf8'}
+                  emissiveIntensity={2.0}
+                />
+              </mesh>
+              <mesh position={[0.34, 0.04, 0.024]}>
+                <boxGeometry args={[0.06, 0.04, 0.01]} />
+                <meshStandardMaterial
+                  color={bi === 2 ? '#f59e0b' : '#22d3ee'}
+                  emissive={bi === 2 ? '#f59e0b' : '#22d3ee'}
+                  emissiveIntensity={1.8}
+                />
               </mesh>
             </group>
           ))}
-
-          {/* Stream Deck & Audio Interface on desk */}
-          <group position={[-0.35, 0.91, -0.78]}>
-            <mesh castShadow>
-              <boxGeometry args={[0.36, 0.06, 0.52]} />
-              <meshStandardMaterial color="#1e293b" roughness={0.35} />
+          {/* Top network switch / patch panel */}
+          <mesh position={[0, 2.12, 0.535]}>
+            <boxGeometry args={[0.88, 0.16, 0.04]} />
+            <meshStandardMaterial color="#334155" metalness={0.6} roughness={0.3} />
+          </mesh>
+          {/* Colorful Ethernet patch cables looping down the front-right cable organizer */}
+          {[
+            { x: 0.36, y: 1.45, h: 1.35, color: '#38bdf8' },
+            { x: 0.4, y: 1.3, h: 1.65, color: '#facc15' },
+            { x: 0.44, y: 1.15, h: 1.95, color: '#22c55e' },
+            { x: 0.48, y: 1.05, h: 1.75, color: '#f97316' },
+          ].map((c, ci) => (
+            <group key={ci}>
+              {/* Vertical cable run along rack organizer */}
+              <mesh position={[c.x, c.y, 0.57]}>
+                <cylinderGeometry args={[0.014, 0.014, c.h, 6]} />
+                <meshStandardMaterial color={c.color} roughness={0.45} />
+              </mesh>
+              {/* Patch plug connecting into switch port */}
+              <mesh position={[c.x - 0.14, 2.12 - ci * 0.02, 0.565]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.013, 0.013, 0.28, 6]} />
+                <meshStandardMaterial color={c.color} roughness={0.45} />
+              </mesh>
+            </group>
+          ))}
+          {/* Floor power & Ethernet cable bundle running from rack to Proyectos desk (+X in local = +Z world) */}
+          {[
+            { z: 0.08, color: '#38bdf8' },
+            { z: 0.0, color: '#0f172a' },
+            { z: -0.08, color: '#facc15' },
+          ].map((fc, fi) => (
+            <mesh key={fi} position={[1.15, 0.03, fc.z]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.022, 0.022, 1.45, 6]} />
+              <meshStandardMaterial color={fc.color} roughness={0.5} />
             </mesh>
-            {/* Glowing RGB stream buttons */}
-            {[-0.14, 0, 0.14].map((bz, bi) => (
-              <mesh key={bi} position={[-0.04, 0.035, bz]}>
-                <boxGeometry args={[0.09, 0.015, 0.09]} />
-                <meshStandardMaterial
-                  color={bi === 0 ? '#ec4899' : bi === 1 ? '#38bdf8' : '#a855f7'}
-                  emissive={bi === 0 ? '#ec4899' : bi === 1 ? '#38bdf8' : '#a855f7'}
-                  emissiveIntensity={1.6}
-                />
+          ))}
+        </group>
+      </group>
+
+      {/* ================================================================ */}
+      {/* 4B. STREAMER & GAMER STUDIO SETUP (Relocated to Back-Left!)      */}
+      {/* ================================================================ */}
+      <group position={[-9.5, 0, -8.1]} rotation={[0, Math.PI / 2, 0]}>
+        <group position={[-17.2, 0, -0.8]}>
+          {/* Studio acoustic rug with neon purple border */}
+          <mesh position={[17.2, 0.014, 0.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[5.2, 5.4]} />
+            <meshStandardMaterial color="#1e1b4b" roughness={0.9} />
+          </mesh>
+          <mesh position={[14.62, 0.02, 0.8]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.08, 5.4]} />
+            <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.5} />
+          </mesh>
+          {/* Real Facebook, YouTube, TikTok & Instagram logos printed on the studio floor */}
+          <StudioFloorLogos position={[15.18, 0.024, 0.8]} />
+
+          {/* Main White Studio Desk (walkable topY = 0.88) */}
+          <group position={[17.7, 0, 0.8]}>
+            {/* Tabletop */}
+            <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
+              <boxGeometry args={[2.2, 0.12, 3.7]} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.28} metalness={0.08} />
+            </mesh>
+            {/* RGB Neon Edge Strip (purple/magenta) */}
+            <mesh position={[-1.11, 0.82, 0]}>
+              <boxGeometry args={[0.04, 0.05, 3.68]} />
+              <meshStandardMaterial color="#c084fc" emissive="#a855f7" emissiveIntensity={2.0} />
+            </mesh>
+            {/* Desk Legs */}
+            {[
+              [-0.95, 0.41, -1.65],
+              [0.95, 0.41, -1.65],
+              [-0.95, 0.41, 1.65],
+              [0.95, 0.41, 1.65],
+            ].map((p, i) => (
+              <mesh key={i} position={p as [number, number, number]} castShadow>
+                <boxGeometry args={[0.1, 0.82, 0.1]} />
+                <meshStandardMaterial color="#1e293b" metalness={0.55} roughness={0.3} />
               </mesh>
             ))}
+
+            {/* Left & Right KRK-style Studio Monitor Speakers */}
+            {[-1.48, 1.48].map((dz, idx) => (
+              <group key={idx} position={[0.45, 1.12, dz]} rotation={[0, idx === 0 ? -0.25 : 0.25, 0]}>
+                <mesh castShadow>
+                  <boxGeometry args={[0.38, 0.48, 0.34]} />
+                  <meshStandardMaterial color="#111827" roughness={0.45} />
+                </mesh>
+                {/* Yellow woofer cone */}
+                <mesh position={[-0.195, -0.06, 0]} rotation={[0, -Math.PI / 2, 0]}>
+                  <circleGeometry args={[0.11, 16]} />
+                  <meshStandardMaterial color="#facc15" roughness={0.35} />
+                </mesh>
+                {/* Tweeter */}
+                <mesh position={[-0.195, 0.12, 0]} rotation={[0, -Math.PI / 2, 0]}>
+                  <circleGeometry args={[0.05, 12]} />
+                  <meshStandardMaterial color="#334155" roughness={0.3} />
+                </mesh>
+              </group>
+            ))}
+
+            {/* Stream Deck & Audio Interface on desk */}
+            <group position={[-0.35, 0.91, -0.78]}>
+              <mesh castShadow>
+                <boxGeometry args={[0.36, 0.06, 0.52]} />
+                <meshStandardMaterial color="#1e293b" roughness={0.35} />
+              </mesh>
+              {/* Glowing RGB stream buttons */}
+              {[-0.14, 0, 0.14].map((bz, bi) => (
+                <mesh key={bi} position={[-0.04, 0.035, bz]}>
+                  <boxGeometry args={[0.09, 0.015, 0.09]} />
+                  <meshStandardMaterial
+                    color={bi === 0 ? '#ec4899' : bi === 1 ? '#38bdf8' : '#a855f7'}
+                    emissive={bi === 0 ? '#ec4899' : bi === 1 ? '#38bdf8' : '#a855f7'}
+                    emissiveIntensity={1.6}
+                  />
+                </mesh>
+              ))}
+            </group>
+
+            {/* Studio Condenser Microphone on Articulated Boom Arm */}
+            <group position={[-0.15, 0.88, 0.95]}>
+              {/* Desk clamp + lower arm */}
+              <mesh position={[0, 0.28, 0]} rotation={[0.25, 0, 0.35]} castShadow>
+                <cylinderGeometry args={[0.018, 0.018, 0.62, 8]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.35} />
+              </mesh>
+              {/* Upper boom arm reaching toward streamer */}
+              <mesh position={[-0.35, 0.56, -0.28]} rotation={[0.4, 0, 1.15]} castShadow>
+                <cylinderGeometry args={[0.016, 0.016, 0.62, 8]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.35} />
+              </mesh>
+              {/* Broadcast Mic body + foam windscreen */}
+              <mesh position={[-0.64, 0.58, -0.45]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[0.048, 0.045, 0.24, 12]} />
+                <meshStandardMaterial color="#1f2937" roughness={0.75} />
+              </mesh>
+              {/* Red glowing mute/live ring on mic */}
+              <mesh position={[-0.56, 0.58, -0.45]} rotation={[0, Math.PI / 2, 0]}>
+                <torusGeometry args={[0.048, 0.008, 8, 16]} />
+                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2.0} />
+              </mesh>
+            </group>
+
+            {/* Pro Streaming Cinema/DSLR Camera mounted high above monitors */}
+            <group position={[0.45, 2.02, 0.0]}>
+              {/* Tall desktop mount pole reaching down to desk */}
+              <mesh position={[0, -0.57, 0]} castShadow>
+                <cylinderGeometry args={[0.024, 0.03, 1.14, 10]} />
+                <meshStandardMaterial color="#1e293b" metalness={0.65} roughness={0.3} />
+              </mesh>
+              {/* Camera main body */}
+              <mesh castShadow>
+                <boxGeometry args={[0.3, 0.24, 0.38]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.25} />
+              </mesh>
+              {/* Top viewfinder hump */}
+              <mesh position={[0.02, 0.15, 0]} castShadow>
+                <boxGeometry args={[0.16, 0.09, 0.16]} />
+                <meshStandardMaterial color="#1e293b" roughness={0.35} />
+              </mesh>
+              {/* Big pro lens barrel pointing toward streamer (-X) */}
+              <mesh position={[-0.24, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[0.105, 0.088, 0.24, 18]} />
+                <meshStandardMaterial color="#1e293b" metalness={0.75} roughness={0.2} />
+              </mesh>
+              {/* Red Canon-style pro lens accent ring */}
+              <mesh position={[-0.31, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+                <torusGeometry args={[0.102, 0.01, 8, 20]} />
+                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.2} />
+              </mesh>
+              {/* Reflective glass lens front */}
+              <mesh position={[-0.365, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+                <circleGeometry args={[0.088, 18]} />
+                <meshStandardMaterial
+                  color="#0ea5e9"
+                  emissive="#38bdf8"
+                  emissiveIntensity={0.85}
+                  metalness={0.9}
+                  roughness={0.1}
+                />
+              </mesh>
+              {/* Flip-out side preview LCD screen */}
+              <mesh position={[-0.02, 0, -0.32]} rotation={[0, -0.35, 0]}>
+                <boxGeometry args={[0.03, 0.17, 0.24]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.3} />
+              </mesh>
+              <mesh position={[-0.038, 0, -0.32]} rotation={[0, -Math.PI / 2 - 0.35, 0]}>
+                <planeGeometry args={[0.21, 0.14]} />
+                <meshStandardMaterial color="#0f172a" emissive="#a855f7" emissiveIntensity={1.3} />
+              </mesh>
+              {/* Bright glowing red REC tally light on top */}
+              <mesh position={[-0.08, 0.21, 0]}>
+                <sphereGeometry args={[0.038, 10, 10]} />
+                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={3.0} />
+              </mesh>
+            </group>
           </group>
 
-          {/* Studio Condenser Microphone on Articulated Boom Arm */}
-          <group position={[-0.15, 0.88, 0.95]}>
-            {/* Desk clamp + lower arm */}
-            <mesh position={[0, 0.28, 0]} rotation={[0.25, 0, 0.35]} castShadow>
-              <cylinderGeometry args={[0.018, 0.018, 0.62, 8]} />
-              <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.35} />
+          {/* Tall LED Ring Light on tripod behind the studio desk */}
+          <group position={[19.15, 0, 0.2]}>
+            <mesh position={[0, 1.05, 0]} castShadow>
+              <cylinderGeometry args={[0.024, 0.032, 2.1, 8]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.35} />
             </mesh>
-            {/* Upper boom arm reaching toward streamer */}
-            <mesh position={[-0.35, 0.56, -0.28]} rotation={[0.4, 0, 1.15]} castShadow>
-              <cylinderGeometry args={[0.016, 0.016, 0.62, 8]} />
-              <meshStandardMaterial color="#0f172a" metalness={0.6} roughness={0.35} />
+            <mesh position={[0, 0.04, 0]}>
+              <cylinderGeometry args={[0.28, 0.34, 0.06, 12]} />
+              <meshStandardMaterial color="#0f172a" roughness={0.4} />
             </mesh>
-            {/* Broadcast Mic body + foam windscreen */}
-            <mesh position={[-0.64, 0.58, -0.45]} rotation={[0, 0, Math.PI / 2]} castShadow>
-              <cylinderGeometry args={[0.048, 0.045, 0.24, 12]} />
-              <meshStandardMaterial color="#1f2937" roughness={0.75} />
-            </mesh>
-            {/* Red glowing mute/live ring on mic */}
-            <mesh position={[-0.56, 0.58, -0.45]} rotation={[0, Math.PI / 2, 0]}>
-              <torusGeometry args={[0.048, 0.008, 8, 16]} />
-              <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2.0} />
-            </mesh>
-          </group>
-
-          {/* Pro Streaming Cinema/DSLR Camera mounted high above monitors */}
-          <group position={[0.45, 2.02, 0.0]}>
-            {/* Tall desktop mount pole reaching down to desk */}
-            <mesh position={[0, -0.57, 0]} castShadow>
-              <cylinderGeometry args={[0.024, 0.03, 1.14, 10]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.65} roughness={0.3} />
-            </mesh>
-            {/* Camera main body */}
-            <mesh castShadow>
-              <boxGeometry args={[0.3, 0.24, 0.38]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.25} />
-            </mesh>
-            {/* Top viewfinder hump */}
-            <mesh position={[0.02, 0.15, 0]} castShadow>
-              <boxGeometry args={[0.16, 0.09, 0.16]} />
-              <meshStandardMaterial color="#1e293b" roughness={0.35} />
-            </mesh>
-            {/* Big pro lens barrel pointing toward streamer (-X) */}
-            <mesh position={[-0.24, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-              <cylinderGeometry args={[0.105, 0.088, 0.24, 18]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.75} roughness={0.2} />
-            </mesh>
-            {/* Red Canon-style pro lens accent ring */}
-            <mesh position={[-0.31, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-              <torusGeometry args={[0.102, 0.01, 8, 20]} />
-              <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.2} />
-            </mesh>
-            {/* Reflective glass lens front */}
-            <mesh position={[-0.365, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-              <circleGeometry args={[0.088, 18]} />
+            {/* Glowing LED Ring */}
+            <mesh position={[-0.05, 2.15, 0]} rotation={[0, Math.PI / 2, 0]}>
+              <torusGeometry args={[0.36, 0.042, 12, 28]} />
               <meshStandardMaterial
-                color="#0ea5e9"
-                emissive="#38bdf8"
-                emissiveIntensity={0.85}
-                metalness={0.9}
-                roughness={0.1}
+                color="#ffffff"
+                emissive="#fef3c7"
+                emissiveIntensity={2.2}
               />
             </mesh>
-            {/* Flip-out side preview LCD screen */}
-            <mesh position={[-0.02, 0, -0.32]} rotation={[0, -0.35, 0]}>
-              <boxGeometry args={[0.03, 0.17, 0.24]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.3} />
-            </mesh>
-            <mesh position={[-0.038, 0, -0.32]} rotation={[0, -Math.PI / 2 - 0.35, 0]}>
-              <planeGeometry args={[0.21, 0.14]} />
-              <meshStandardMaterial color="#0f172a" emissive="#a855f7" emissiveIntensity={1.3} />
-            </mesh>
-            {/* Bright glowing red REC tally light on top */}
-            <mesh position={[-0.08, 0.21, 0]}>
-              <sphereGeometry args={[0.038, 10, 10]} />
-              <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={3.0} />
-            </mesh>
           </group>
-        </group>
 
-        {/* Tall LED Ring Light on tripod behind the studio desk */}
-        <group position={[19.15, 0, 0.2]}>
-          <mesh position={[0, 1.05, 0]} castShadow>
-            <cylinderGeometry args={[0.024, 0.032, 2.1, 8]} />
-            <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.35} />
-          </mesh>
-          <mesh position={[0, 0.04, 0]}>
-            <cylinderGeometry args={[0.28, 0.34, 0.06, 12]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.4} />
-          </mesh>
-          {/* Glowing LED Ring */}
-          <mesh position={[-0.05, 2.15, 0]} rotation={[0, Math.PI / 2, 0]}>
-            <torusGeometry args={[0.36, 0.042, 12, 28]} />
-            <meshStandardMaterial
-              color="#ffffff"
-              emissive="#fef3c7"
-              emissiveIntensity={2.2}
-            />
-          </mesh>
+          {/* Purple Gaming / Streamer Chair facing the studio desk (+X local -> -Z world) */}
+          <OfficeChair position={[15.6, 0, 0.8]} rotationY={Math.PI / 2} color="#7c3aed" />
         </group>
-
-        {/* Purple Gaming / Streamer Chair facing the studio desk (+X) */}
-        <OfficeChair position={[15.6, 0, 0.8]} rotationY={Math.PI / 2} color="#7c3aed" />
       </group>
 
       {/* ================================================================ */}
@@ -1452,8 +1970,58 @@ export function WorldMap({ activeZone, resetSignal, likesCount }: WorldMapProps)
       {/* Lush office plants */}
       <PottedPlant position={[4.5, 0, -0.35]} scale={1.3} potColor="#f8fafc" />
       <PottedPlant position={[-15.4, 0, 2.6]} scale={1.2} potColor="#e2e8f0" />
-      <PottedPlant position={[14.5, 0, 8.8]} scale={1.25} potColor="#f8fafc" />
+      <PottedPlant position={[17.8, 0, 3.2]} scale={1.25} potColor="#f8fafc" />
       <PottedPlant position={[-15.4, 0, -5.8]} scale={1.2} potColor="#f8fafc" />
+
+      {/* === 6. ZONA MINIJUEGO — TRAMPOLÍN 3D USABLE (Front-Right) === */}
+      <group position={[TRAMPOLINE.x, 0, TRAMPOLINE.z]}>
+        {/* 6 angled brushed-steel legs */}
+        {[0, 1, 2, 3, 4, 5].map((i) => {
+          const angle = (i / 6) * Math.PI * 2;
+          return (
+            <mesh
+              key={i}
+              position={[Math.cos(angle) * 2.02, 0.2, Math.sin(angle) * 2.02]}
+              castShadow
+            >
+              <cylinderGeometry args={[0.055, 0.065, 0.4, 8]} />
+              <meshStandardMaterial color="#94a3b8" metalness={0.75} roughness={0.28} />
+            </mesh>
+          );
+        })}
+        {/* Outer bright cyan safety pad ring */}
+        <mesh position={[0, 0.4, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
+          <torusGeometry args={[2.06, 0.18, 12, 36]} />
+          <meshStandardMaterial color="#06b6d4" roughness={0.35} metalness={0.15} />
+        </mesh>
+        {/* Inner neon accent trim ring */}
+        <mesh position={[0, 0.438, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[1.65, 1.88, 36]} />
+          <meshStandardMaterial
+            color="#38bdf8"
+            emissive="#22d3ee"
+            emissiveIntensity={1.1}
+            roughness={0.25}
+          />
+        </mesh>
+        {/* High-tension black bounce mat */}
+        <mesh position={[0, 0.4, 0]} receiveShadow>
+          <cylinderGeometry args={[1.88, 1.88, 0.06, 36]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.85} />
+        </mesh>
+        {/* Center glowing bounce target ring */}
+        <mesh position={[0, 0.442, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.45, 0.62, 28]} />
+          <meshStandardMaterial
+            color="#facc15"
+            emissive="#facc15"
+            emissiveIntensity={1.4}
+          />
+        </mesh>
+      </group>
+
+      {/* === 7. PORTAL DE TELETRANSPORTE AL INICIO (Front-Right Corner) === */}
+      <SpawnTeleportPortal position={[SPAWN_PORTAL.x, 0, SPAWN_PORTAL.z]} />
 
       {/* Autonomous Flying Drone (smashable by jumping into it!) */}
       <PatrolDrone resetSignal={resetSignal} />

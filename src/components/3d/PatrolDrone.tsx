@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BOX_OBSTACLES, OFFICE_BOUNDS } from '../../data/portfolioData';
 import { characterState, realtimeEvents } from '../../state/inputState';
+import { cinemaClock } from './CinemaCamera';
 
 interface DebrisSpec {
   id: string;
@@ -121,15 +122,49 @@ export function PatrolDrone({ resetSignal }: PatrolDroneProps) {
       }
     }
 
+    // In Cinema mode, re-assemble the drone at t >= 27.9s so it flies visibly over the Trampoline & Portal in Clip 6!
+    if (cinemaClock.active && cinemaClock.elapsed >= 27.9 && brokenRef.current) {
+      brokenRef.current = false;
+      explosionAge.current = 99;
+      debrisBodiesRef.current = [];
+      setBroken(false);
+    }
+
     if (!brokenRef.current) {
-      // Fly figure-8 patrol at reachable jump height (~2.85m)
-      const x = Math.sin(t * 0.38) * 9.6;
-      const z = Math.sin(t * 0.76) * 4.6 - 0.6;
-      const y = 2.85 + Math.sin(t * 2.4) * 0.22;
+      let x: number;
+      let y: number;
+      let z: number;
+      let nextX: number;
+      let nextZ: number;
+
+      if (cinemaClock.active && cinemaClock.elapsed < 3.2) {
+        // In Cinema opening, sweep the drone straight across the red carpet at z=6.2
+        // so the jumping robot intercepts & explodes it right after smashing EMI CAMPOS!
+        const ct = cinemaClock.elapsed;
+        const p = Math.min(1, ct / 2.0);
+        x = THREE.MathUtils.lerp(-6.5, 0.0, p);
+        z = THREE.MathUtils.lerp(4.2, 6.8, p);
+        y = 3.05 + Math.sin(ct * 4) * 0.12;
+        nextX = x + 0.2;
+        nextZ = z + 0.08;
+      } else if (cinemaClock.active && cinemaClock.elapsed >= 27.9 && cinemaClock.elapsed <= 33.0) {
+        // Clip 6: Drone glides gracefully over the 3D Trampoline (15.6, 11.4) and swoops toward the Portal (8.2, 14.8)!
+        const p = Math.min(1, Math.max(0, (cinemaClock.elapsed - 28.3) / 4.3));
+        x = THREE.MathUtils.lerp(16.8, 8.2, p);
+        z = THREE.MathUtils.lerp(10.6, 14.5, p) + Math.sin(p * Math.PI) * 1.1;
+        y = 2.45 + Math.sin(p * Math.PI * 2) * 0.45;
+        nextX = x - 0.35;
+        nextZ = z + 0.18;
+      } else {
+        // Normal figure-8 patrol at reachable jump height (~2.85m)
+        x = Math.sin(t * 0.38) * 9.6;
+        z = Math.sin(t * 0.76) * 4.6 - 0.6;
+        y = 2.85 + Math.sin(t * 2.4) * 0.22;
+        nextX = Math.sin((t + 0.05) * 0.38) * 9.6;
+        nextZ = Math.sin((t + 0.05) * 0.76) * 4.6 - 0.6;
+      }
 
       if (droneRef.current) {
-        const nextX = Math.sin((t + 0.05) * 0.38) * 9.6;
-        const nextZ = Math.sin((t + 0.05) * 0.76) * 4.6 - 0.6;
         droneRef.current.position.set(x, y, z);
         droneRef.current.rotation.y = Math.atan2(nextX - x, nextZ - z);
         droneRef.current.rotation.x = 0.12;
@@ -147,7 +182,7 @@ export function PatrolDrone({ resetSignal }: PatrolDroneProps) {
         headY - y,
         characterState.z - z
       );
-      if (characterState.y > 0.25 && distToDrone < 1.35) {
+      if (characterState.y > 0.25 && distToDrone < 1.55) {
         triggerExplosion(x, y, z, characterState.vx, characterState.vz);
         realtimeEvents.sendDroneSmash?.({
           x,

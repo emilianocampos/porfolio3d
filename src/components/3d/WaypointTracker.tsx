@@ -74,13 +74,26 @@ export function WaypointTracker() {
         characterState.z - zone.position[2]
       );
 
-      const entry = waypointScreenMap[zone.id];
-      entry.screenX = sx;
-      entry.screenY = sy;
-      entry.isOffscreen = isOffscreen;
-      entry.angleRad = angleRad;
-      entry.distance = dist;
-      entry.isInside = dist <= zone.radius;
+      let entry = waypointScreenMap[zone.id];
+      if (!entry) {
+        entry = {
+          id: zone.id,
+          screenX: sx,
+          screenY: sy,
+          isOffscreen,
+          angleRad,
+          distance: dist,
+          isInside: dist <= zone.radius,
+        };
+        waypointScreenMap[zone.id] = entry;
+      } else {
+        entry.screenX = sx;
+        entry.screenY = sy;
+        entry.isOffscreen = isOffscreen;
+        entry.angleRad = angleRad;
+        entry.distance = dist;
+        entry.isInside = dist <= zone.radius;
+      }
     }
   });
 

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>CV - Emiliano Campos | Frontend / Full-Stack Developer</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 210mm;
+      height: 297mm;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      display: grid;
+      grid-template-columns: 65mm 1fr;
+      overflow: hidden;
+    }
+
+    /* === LEFT SIDEBAR === */
+    .sidebar {
+      background: #f1f5f9;
+      border-right: 1px solid #cbd5e1;
+      padding: 13mm 7mm 10mm 8.5mm;
+      display: flex;
+      flex-direction: column;
+      gap: 5.5mm;
+    }
+
+    .name-block {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 4mm;
+    }
+
+    .name-block h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      line-height: 1.06;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+
+    .name-block h1 span {
+      color: #2563eb;
+    }
+
+    .name-block .headline {
+      margin-top: 2.5mm;
+      font-size: 8.6pt;
+      font-weight: 600;
+      line-height: 1.38;
+      color: #334155;
+    }
+
+    .side-section h2 {
+      font-size: 9.8pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #1e3a8a;
+      border-bottom: 1.2px solid #cbd5e1;
+      padding-bottom: 1.3mm;
+      margin-bottom: 2.4mm;
+    }
+
+    .contact-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2mm;
+      font-size: 8.1pt;
+      color: #1e293b;
+    }
+
+    .contact-list li {
+      display: flex;
+      align-items: center;
+      gap: 2.2mm;
+      word-break: break-word;
+    }
+
+    .contact-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      color: #2563eb;
+    }
+
+    .about-text {
+      font-size: 7.8pt;
+      line-height: 1.44;
+      color: #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 2mm;
+      text-align: left;
+    }
+
+    .skill-group {
+      margin-bottom: 2.8mm;
+    }
+
+    .skill-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .skill-group h3 {
+      font-size: 8.1pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 1.4mm;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.3mm;
+    }
+
+    .chip {
+      font-size: 7.3pt;
+      font-weight: 600;
+      color: #1e3a8a;
+      background: #dbeafe;
+      padding: 0.8mm 2.1mm;
+      border-radius: 3px;
+    }
+
+    .chip--neutral {
+      color: #334155;
+      background: #e2e8f0;
+    }
+
+    .extra-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2mm;
+      font-size: 7.8pt;
+      color: #334155;
+    }
+
+    .extra-list li::before {
+      content: '▸';
+      color: #2563eb;
+      font-weight: 700;
+      margin-right: 1.8mm;
+    }
+
+    /* === MAIN RIGHT COLUMN === */
+    .main {
+      padding: 12mm 9.5mm 10mm 9mm;
+      display: flex;
+      flex-direction: column;
+      gap: 4.8mm;
+    }
+
+    .main-section-title {
+      font-size: 11.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #1e3a8a;
+      border-bottom: 1.8px solid #2563eb;
+      padding-bottom: 1.2mm;
+      margin-bottom: 3mm;
+    }
+
+    .exp-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3.8mm;
+    }
+
+    .exp-item {
+      position: relative;
+      padding-left: 3.8mm;
+      border-left: 1.5px solid #cbd5e1;
+    }
+
+    .exp-item::before {
+      content: '';
+      position: absolute;
+      left: -3.5px;
+      top: 3.5px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2563eb;
+    }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 3mm;
+    }
+
+    .exp-role {
+      font-size: 9.6pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .exp-date {
+      font-size: 7.7pt;
+      font-weight: 700;
+      color: #2563eb;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .exp-company {
+      font-size: 8.2pt;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 0.3mm;
+      margin-bottom: 1.3mm;
+    }
+
+    .exp-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.05mm;
+      font-size: 7.75pt;
+      line-height: 1.38;
+      color: #334155;
+    }
+
+    .exp-bullets li {
+      position: relative;
+      padding-left: 3mm;
+    }
+
+    .exp-bullets li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: #2563eb;
+      font-weight: 800;
+    }
+
+    .exp-subhead {
+      font-size: 7.9pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin: 1.5mm 0 1mm;
+    }
+
+    .edu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2.6mm;
+    }
+
+    .edu-item {
+      padding-left: 3.8mm;
+      border-left: 1.5px solid #cbd5e1;
+      position: relative;
+    }
+
+    .edu-item::before {
+      content: '';
+      position: absolute;
+      left: -3.5px;
+      top: 3.5px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2563eb;
+    }
+
+    .edu-title {
+      font-size: 8.9pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .edu-meta {
+      font-size: 7.8pt;
+      font-weight: 600;
+      color: #2563eb;
+      margin-top: 0.2mm;
+    }
+
+    .edu-desc {
+      font-size: 7.6pt;
+      line-height: 1.36;
+      color: #475569;
+      margin-top: 0.5mm;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <header class="name-block">
+        <h1>Emiliano<br /><span>Campos</span></h1>
+        <p class="headline">
+          Product-Minded Frontend / Full-Stack Developer<br />
+          React, TypeScript &amp; Next.js · UX, Growth &amp; Analytics
+        </p>
+      </header>
+
+      <section class="side-section">
+        <h2>Contacto</h2>
+        <ul class="contact-list">
+          <li>
+            <svg class="contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>+54 280 419-8600</span>
+          </li>
+          <li>
+            <svg class="contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>emicampos1268@gmail.com</span>
+          </li>
+          <li>
+            <svg class="contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Trelew, Chubut – Argentina</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="side-section">
+        <h2>Sobre mí</h2>
+        <div class="about-text">
+          <p>
+            <strong>Product-Minded Developer</strong> (foco en Frontend) con <strong>+2 años de experiencia</strong> en React y TypeScript, creando aplicaciones web, dashboards y e-commerce pensados primero desde el usuario y el negocio.
+          </p>
+          <p>
+            Experiencia integrando frontend con APIs REST, lógica de negocio e interfaces optimizadas para rendimiento y UX.
+          </p>
+          <p>
+            Perfil autodidacta en formación continua. Inglés <strong>B2</strong> para lectura técnica y comunicación profesional.
+          </p>
+          <p>
+            Visión integral combinando desarrollo y producto, con experiencia real en crecimiento y monetización de comunidades digitales (<strong>+182.000 seguidores</strong>).
+          </p>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <h2>Habilidades</h2>
+
+        <div class="skill-group">
+          <h3>Frontend</h3>
+          <div class="chips">
+            <span class="chip">React</span>
+            <span class="chip">TypeScript</span>
+            <span class="chip">Next.js</span>
+            <span class="chip">JavaScript</span>
+            <span class="chip">Tailwind CSS</span>
+            <span class="chip">Three.js</span>
+            <span class="chip">HTML5 / CSS3</span>
+          </div>
+        </div>
+
+        <div class="skill-group">
+          <h3>Backend &amp; Data</h3>
+          <div class="chips">
+            <span class="chip">Node.js</span>
+            <span class="chip">Supabase</span>
+            <span class="chip">SQL</span>
+            <span class="chip">APIs REST</span>
+            <span class="chip">PHP / WordPress</span>
+          </div>
+        </div>
+
+        <div class="skill-group">
+          <h3>Tools &amp; Workflow</h3>
+          <div class="chips">
+            <span class="chip chip--neutral">Git &amp; GitHub</span>
+            <span class="chip chip--neutral">AWS (básico)</span>
+            <span class="chip chip--neutral">SEO</span>
+            <span class="chip chip--neutral">Vibe Coding</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <h2>Habilidades Extras</h2>
+        <ul class="extra-list">
+          <li>Creación de contenido digital</li>
+          <li>Marketing Digital &amp; Growth</li>
+          <li>UX / UI orientado a conversión</li>
+          <li>Edición de video (CapCut)</li>
+          <li>Edición de imagen (Photoshop)</li>
+        </ul>
+      </section>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <section>
+        <h2 class="main-section-title">Experiencia Profesional</h2>
+
+        <div class="exp-list">
+          <!-- GearthLogic -->
+          <article class="exp-item">
+            <div class="exp-header">
+              <h3 class="exp-role">Frontend Developer (+2 años)</h3>
+              <span class="exp-date">2024 – 2026</span>
+            </div>
+            <div class="exp-company">Empresa Tech · GearthLogic</div>
+            <ul class="exp-bullets">
+              <li>Desarrollo de aplicaciones web, dashboards administrativos y landing pages optimizadas para conversión usando React y TypeScript integrados con APIs REST.</li>
+              <li>Creación de APIs personalizadas para integración de servicios, manejo de datos y formularios conectados a servidor backend.</li>
+            </ul>
+            <div class="exp-subhead">Proyecto destacado · Plugin E-Commerce a medida (WordPress / PHP)</div>
+            <ul class="exp-bullets">
+              <li>Implementación completa de lógica de negocio en producción: carrito de compras, checkout optimizado e integración de pasarela de pagos reales.</li>
+              <li>Autenticación y gestión de usuarios para vendedores, panel administrativo configurable y automatización de catálogo mediante tareas programadas (cron jobs).</li>
+            </ul>
+          </article>
+
+          <!-- Lead Frontend Mascotas Trelew -->
+          <article class="exp-item">
+            <div class="exp-header">
+              <h3 class="exp-role">Lead Frontend Developer · Mascotas Trelew</h3>
+              <span class="exp-date">Actualidad</span>
+            </div>
+            <div class="exp-company">Plataforma Web de Impacto Social (mascotastrelew.vercel.app)</div>
+            <ul class="exp-bullets">
+              <li>Diseño y desarrollo end-to-end con React, Next.js y Tailwind CSS: mapa interactivo geolocalizado, alertas automatizadas por WhatsApp y generador de carteles con código QR para veterinarias.</li>
+              <li>Cobertura y entrevistas en medios provinciales: Diario El Chubut, Diario Jornada, Jornada Stream, Radio 3 y LU20 Radio Chubut.</li>
+              <li>Tracción orgánica con +40 casos activos gestionados por vecinos, extendiéndose desde Trelew hasta ciudades como La Plata.</li>
+            </ul>
+          </article>
+
+          <!-- Freelance -->
+          <article class="exp-item">
+            <div class="exp-header">
+              <h3 class="exp-role">Frontend Developer (Freelance)</h3>
+              <span class="exp-date">2023 – Actualidad</span>
+            </div>
+            <div class="exp-company">Proyectos Web &amp; Productos SaaS B2B para clientes reales</div>
+            <ul class="exp-bullets">
+              <li>Relevamiento de requerimientos, diseño responsive y desarrollo de sitios web y landing pages orientadas a conversión con integración de formularios y APIs.</li>
+              <li>Diseño, desarrollo y comercialización de productos SaaS B2B con arquitectura multi-tenant: menús digitales para restaurantes, gestión de gimnasios y sistemas de turnos.</li>
+              <li>Implementación de paneles administrativos para gestión de clientes, productos, reservas y operaciones diarias del negocio.</li>
+            </ul>
+          </article>
+
+          <!-- Content Creator -->
+          <article class="exp-item">
+            <div class="exp-header">
+              <h3 class="exp-role">Creador de Contenido &amp; Growth Digital</h3>
+              <span class="exp-date">2020 – Actualidad</span>
+            </div>
+            <div class="exp-company">Marca Personal · Redes Sociales (Nicho Fútbol)</div>
+            <ul class="exp-bullets">
+              <li>Construcción y monetización activa de comunidad de +182.000 seguidores: +140.000 en Facebook, +25.000 en TikTok, +17.000 en Instagram y canal de YouTube.</li>
+              <li>Análisis de métricas (retención, alcance, engagement) y principios de psicología del comportamiento para optimizar crecimiento y conversión digital.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="main-section-title">Educación</h2>
+        <div class="edu-list">
+          <article class="edu-item">
+            <div class="exp-header">
+              <h3 class="edu-title">Desarrollo Frontend</h3>
+              <span class="exp-date">Coderhouse</span>
+            </div>
+            <div class="edu-desc">HTML5, CSS3, JavaScript y fundamentos de desarrollo web moderno con proyectos prácticos y buenas prácticas, complementado con formación autodidacta continua en proyectos productivos.</div>
+          </article>
+
+          <article class="edu-item">
+            <div class="exp-header">
+              <h3 class="edu-title">Bachiller en Economía</h3>
+              <span class="exp-date">Secundaria completa</span>
+            </div>
+            <div class="edu-desc">Orientación en economía, administración y gestión empresarial.</div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

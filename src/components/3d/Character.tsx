@@ -5,6 +5,8 @@ import {
   BOX_OBSTACLES,
   type InteractiveZone,
   OFFICE_BOUNDS,
+  SPAWN_PORTAL,
+  TRAMPOLINE,
   ZONES,
   type ZoneId,
 } from '../../data/portfolioData';
@@ -14,9 +16,11 @@ import {
   navigationState,
 } from '../../state/inputState';
 import { EmoteBubble3D, RobotModel } from './RobotModel';
+import { cinemaClock } from './CinemaCamera';
 
 interface CharacterProps {
   disabled: boolean;
+  cinemaMode?: boolean;
   color: string;
   localEmote: { emoji: string; key: number } | null;
   onZoneChange: (zone: InteractiveZone | null) => void;
@@ -31,6 +35,7 @@ const CHARACTER_RADIUS = 0.55;
 
 export function Character({
   disabled,
+  cinemaMode = false,
   color,
   localEmote,
   onZoneChange,
@@ -52,12 +57,33 @@ export function Character({
   const { camera, gl, size } = useThree();
   const cameraTarget = useRef(new THREE.Vector3(0, 1, -5.4));
   const desiredCameraTarget = useRef(new THREE.Vector3(0, 1, -5.4));
-  const desiredCameraPos = useRef(new THREE.Vector3(0, 9.5, 6.2));
+  const desiredCameraPos = useRef(new THREE.Vector3(0, 3.4, 4.8));
 
-  // Orbit camera state (starts centered facing the wall sign & spawn pad)
+  // Orbit camera state (starts at eye-level behind robot facing the wall sign & spawn pad)
   const cameraYaw = useRef(0);
-  const cameraPitch = useRef(0.62);
-  const cameraDist = useRef(14.5);
+  const cameraPitch = useRef(0.24);
+  const cameraDist = useRef(10.5);
+
+  // When exiting cinema/intro mode, place the robot cleanly back on the Oscars spawn pad
+  const prevCinemaRef = useRef(cinemaMode);
+  useEffect(() => {
+    if (prevCinemaRef.current && !cinemaMode && groupRef.current) {
+      groupRef.current.position.set(0, 0, -5.4);
+      groupRef.current.rotation.y = 0;
+      velocityY.current = 0;
+      isGrounded.current = true;
+      characterState.x = 0;
+      characterState.y = 0;
+      characterState.z = -5.4;
+      characterState.vx = 0;
+      characterState.vz = 0;
+      characterState.rotY = 0;
+      cameraYaw.current = 0;
+      cameraPitch.current = 0.24;
+      cameraDist.current = 10.5;
+    }
+    prevCinemaRef.current = cinemaMode;
+  }, [cinemaMode]);
 
   useEffect(() => {
     const dom = gl.domElement;
@@ -186,6 +212,70 @@ export function Character({
     const char = groupRef.current;
     if (!char) return;
 
+    if (cinemaMode) {
+      // Fast, action-packed 3.5s opening:
+      // 0.0-1.6s: sprint & smash "EMI CAMPOS" (z=11.4)
+      // 1.6-2.7s: huge heroic jump right into the flying PatrolDrone at z=6.2 -> BOOM!
+      const ct = cinemaClock.elapsed;
+      const prevX = char.position.x;
+      const prevZ = char.position.z;
+
+      if (ct < 0.15) {
+        char.position.set(0, 0, 15.2);
+        char.rotation.y = Math.PI;
+        velocityY.current = 0;
+        isGrounded.current = true;
+      } else if (ct < 2.85) {
+        const runProgress = (ct - 0.15) / 2.7;
+        char.position.x = Math.sin(runProgress * Math.PI * 2) * 0.35;
+        char.position.z = THREE.MathUtils.lerp(15.2, 3.6, runProgress);
+        char.rotation.y = Math.PI;
+
+        // Big jump timed right after smashing EMI CAMPOS to hit the drone at z ≈ 6.2!
+        if (ct >= 1.55 && ct <= 2.45) {
+          const jumpP = (ct - 1.55) / 0.9;
+          char.position.y = Math.sin(jumpP * Math.PI) * 1.85;
+        } else {
+          char.position.y = 0;
+        }
+
+        walkCycle.current += delta * 17;
+        const swing = Math.sin(walkCycle.current) * 0.82;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.9;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.9;
+        if (bodyRef.current) {
+          bodyRef.current.position.y = Math.abs(Math.sin(walkCycle.current)) * 0.11;
+        }
+      } else {
+        // Quick heroic turn toward camera on the red carpet
+        char.position.y = 0;
+        let angleDiff = 0 - char.rotation.y;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        char.rotation.y += angleDiff * Math.min(1, delta * 8);
+
+        const damp = Math.min(1, delta * 12);
+        if (leftLegRef.current) leftLegRef.current.rotation.x *= 1 - damp;
+        if (rightLegRef.current) rightLegRef.current.rotation.x *= 1 - damp;
+        if (leftArmRef.current) leftArmRef.current.rotation.x *= 1 - damp;
+        if (rightArmRef.current) rightArmRef.current.rotation.x *= 1 - damp;
+        if (bodyRef.current) {
+          bodyRef.current.position.y = Math.sin(state.clock.elapsedTime * 2.6) * 0.035;
+        }
+      }
+
+      // Publish live position & impact velocity so PhysicsProps + PatrolDrone react naturally!
+      characterState.x = char.position.x;
+      characterState.y = char.position.y;
+      characterState.z = char.position.z;
+      characterState.rotY = char.rotation.y;
+      characterState.vx = (char.position.x - prevX) / Math.max(delta, 0.001);
+      characterState.vz = (char.position.z - prevZ) / Math.max(delta, 0.001);
+      return;
+    }
+
     let moveX = 0;
     let moveZ = 0;
     let wantSprint = false;
@@ -300,9 +390,15 @@ export function Character({
       char.rotation.y += angleDiff * Math.min(1, delta * 12);
     }
 
-    // Compute walkable support height (floor = 0 or tabletop of any desk/sofa under player)
+    // Compute walkable support height (floor = 0, trampoline mat, or tabletop of any desk/sofa under player)
     const prevY = char.position.y;
     let supportY = 0;
+    const onTrampoline =
+      Math.hypot(char.position.x - TRAMPOLINE.x, char.position.z - TRAMPOLINE.z) <=
+      TRAMPOLINE.radius;
+    if (onTrampoline && prevY >= TRAMPOLINE.topY - 0.35) {
+      supportY = Math.max(supportY, TRAMPOLINE.topY);
+    }
     for (const box of BOX_OBSTACLES) {
       const overX =
         char.position.x >= box.minX - 0.18 && char.position.x <= box.maxX + 0.18;
@@ -313,20 +409,31 @@ export function Character({
       }
     }
 
-    // Vertical jump, landing on tables, and walking off edges
+    // Vertical jump, landing on tables, trampoline 2.4x super-bounce, and walking off edges
     if (char.position.y > supportY || velocityY.current > 0) {
       isGrounded.current = false;
       velocityY.current -= GRAVITY * delta;
       char.position.y += velocityY.current * delta;
       if (char.position.y <= supportY) {
         char.position.y = supportY;
-        velocityY.current = 0;
-        isGrounded.current = true;
+        if (onTrampoline) {
+          // 1.55x velocity yields 2.4x jump height (v^2 / 2g)
+          velocityY.current = JUMP_VELOCITY * 1.55;
+          isGrounded.current = false;
+        } else {
+          velocityY.current = 0;
+          isGrounded.current = true;
+        }
       }
     } else {
       char.position.y = supportY;
-      velocityY.current = 0;
-      isGrounded.current = true;
+      if (onTrampoline) {
+        velocityY.current = JUMP_VELOCITY * 1.55;
+        isGrounded.current = false;
+      } else {
+        velocityY.current = 0;
+        isGrounded.current = true;
+      }
     }
 
     // Procedural limb & body animation
@@ -351,6 +458,18 @@ export function Character({
       if (bodyRef.current) {
         bodyRef.current.position.y = Math.sin(t * 2.6) * 0.035;
       }
+    }
+
+    // Teleport back to the Oscars red carpet spawn pad when stepping into the Spawn Portal
+    if (
+      Math.hypot(char.position.x - SPAWN_PORTAL.x, char.position.z - SPAWN_PORTAL.z) <=
+      SPAWN_PORTAL.radius
+    ) {
+      char.position.set(0, 0.35, -5.4);
+      char.rotation.y = 0;
+      velocityY.current = 2.4;
+      isGrounded.current = false;
+      navigationState.autoWalkTarget = null;
     }
 
     // Publish live position, rotation & velocity for PhysicsProps & Realtime broadcast
@@ -378,6 +497,8 @@ export function Character({
       currentZoneId.current = nextZoneId;
       onZoneChange(foundZone);
     }
+
+    if (cinemaMode) return;
 
     // Smooth spherical follow camera controlled by finger/mouse drag
     const isPortrait = size.height > size.width;

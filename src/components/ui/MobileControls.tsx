@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Hand, Zap } from 'lucide-react';
+import { ArrowUp, Grab, Hand, Send, Zap } from 'lucide-react';
 import type { InteractiveZone, ZoneId } from '../../data/portfolioData';
-import { mobileInput, resetMobileInput } from '../../state/inputState';
+import { grabState, mobileInput, resetMobileInput } from '../../state/inputState';
 
 interface MobileControlsProps {
   activeZone: InteractiveZone | null;
@@ -21,6 +21,20 @@ export function MobileControls({
   const pointerIdRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSprinting, setIsSprinting] = useState(false);
+  const [grabUi, setGrabUi] = useState({
+    held: grabState.heldIndex !== null,
+    canGrab: grabState.canGrab,
+  });
+
+  useEffect(() => {
+    const listener = (held: boolean, canGrab: boolean) => {
+      setGrabUi({ held, canGrab });
+    };
+    grabState.listeners.add(listener);
+    return () => {
+      grabState.listeners.delete(listener);
+    };
+  }, []);
 
   const setKnobTransform = (x: number, y: number) => {
     if (knobRef.current) {
@@ -128,6 +142,23 @@ export function MobileControls({
           >
             <Hand size={22} />
             <span>Abrir</span>
+          </button>
+        )}
+
+        {(grabUi.held || grabUi.canGrab) && (
+          <button
+            type="button"
+            className={`mobile-action-btn ${
+              grabUi.held ? 'mobile-action-btn--throw' : 'mobile-action-btn--grab'
+            }`}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              grabState.grabRequested = true;
+            }}
+            aria-label={grabUi.held ? 'Tirar objeto' : 'Agarrar objeto'}
+          >
+            {grabUi.held ? <Send size={20} /> : <Grab size={20} />}
+            <span>{grabUi.held ? 'Tirar' : 'Agarrar'}</span>
           </button>
         )}
 

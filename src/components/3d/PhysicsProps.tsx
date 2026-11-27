@@ -1,10 +1,33 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { BOX_OBSTACLES, OFFICE_BOUNDS } from '../../data/portfolioData';
-import { characterState, realtimeEvents } from '../../state/inputState';
+import {
+  BOX_OBSTACLES,
+  OFFICE_BOUNDS,
+  SPAWN_PORTAL,
+} from '../../data/portfolioData';
+import {
+  characterState,
+  grabState,
+  notifyGrabState,
+  realtimeEvents,
+} from '../../state/inputState';
 
-type PropKind = 'ball' | 'box' | 'cone' | 'cube' | 'cylinder' | 'monitor' | 'vr' | 'guitar' | 'belt' | 'letter';
+type PropKind =
+  | 'ball'
+  | 'soccer'
+  | 'box'
+  | 'cone'
+  | 'cube'
+  | 'cylinder'
+  | 'monitor'
+  | 'vr'
+  | 'guitar'
+  | 'belt'
+  | 'letter'
+  | 'tv'
+  | 'radio'
+  | 'newspaper';
 
 interface PropConfig {
   id: string;
@@ -21,6 +44,88 @@ interface PropConfig {
   restitution: number;
   spawn: [number, number, number];
   spawnRotY?: number;
+}
+
+let soccerTextureCache: THREE.CanvasTexture | null = null;
+
+/** Procedural Argentina AFA blue-and-white patterned soccer ball texture (cached once) */
+function getSoccerBallTexture(): THREE.CanvasTexture {
+  if (soccerTextureCache) return soccerTextureCache;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    // Royal blue Argentine base weave
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Subtle deep-navy geometric weave lines
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.lineWidth = 3;
+    for (let x = 0; x <= 512; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + 24, 256);
+      ctx.stroke();
+    }
+
+    // Large cream-white circular panels with navy/sky borders (just like the AFA ball!)
+    const panels = [
+      { x: 64, y: 64, r: 44, badge: 'AFA' },
+      { x: 192, y: 64, r: 44, badge: 'STRIPES' },
+      { x: 320, y: 64, r: 44, badge: 'AFA' },
+      { x: 448, y: 64, r: 44, badge: 'STRIPES' },
+      { x: 128, y: 184, r: 44, badge: 'STRIPES' },
+      { x: 256, y: 184, r: 44, badge: 'AFA' },
+      { x: 384, y: 184, r: 44, badge: 'STRIPES' },
+      { x: 0, y: 184, r: 44, badge: 'AFA' },
+      { x: 512, y: 184, r: 44, badge: 'AFA' },
+    ];
+
+    for (const p of panels) {
+      // Cream white panel circle
+      ctx.fillStyle = '#f8f5ec';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Royal blue inner trim ring
+      ctx.strokeStyle = '#1e40af';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      if (p.badge === 'AFA') {
+        // Laurel wreath arc + "AFA" emblem
+        ctx.strokeStyle = '#1e3a8a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 24, Math.PI * 0.2, Math.PI * 0.8);
+        ctx.stroke();
+        ctx.fillStyle = '#1e3a8a';
+        ctx.font = '900 18px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('AFA', p.x, p.y - 2);
+      } else {
+        // 3 diagonal blue sport bars
+        ctx.fillStyle = '#2563eb';
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(-0.45);
+        ctx.fillRect(-16, 2, 7, 14);
+        ctx.fillRect(-4, -5, 7, 21);
+        ctx.fillRect(8, -12, 7, 28);
+        ctx.restore();
+      }
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  soccerTextureCache = tex;
+  return tex;
 }
 
 interface LetterStroke {
@@ -144,18 +249,18 @@ interface PropBody {
 
 const INITIAL_PROPS: PropConfig[] = [
   // === KNOCKABLE OFFICE MONITORS & VR HEADSET ON DESKS ===
-  // Dev Desk (Proyectos, pushed toward right edge)
+  // Dev Desk (Proyectos, rotated facing red carpet with big Smart TV in center)
   {
     id: 'mon-dev-1',
     kind: 'monitor',
     color: '#0f172a',
     screenColor: '#6366f1',
-    wide: true,
-    size: 0.62,
-    mass: 0.85,
+    wide: false,
+    size: 0.54,
+    mass: 0.8,
     restitution: 0.35,
-    spawn: [13.65, 1.24, 7.85],
-    spawnRotY: Math.PI,
+    spawn: [10.65, 1.24, 0.75],
+    spawnRotY: -Math.PI / 2 + 0.25,
   },
   {
     id: 'mon-dev-2',
@@ -163,11 +268,11 @@ const INITIAL_PROPS: PropConfig[] = [
     color: '#0f172a',
     screenColor: '#38bdf8',
     wide: false,
-    size: 0.56,
+    size: 0.54,
     mass: 0.75,
     restitution: 0.35,
-    spawn: [16.0, 1.24, 7.85],
-    spawnRotY: Math.PI - 0.2,
+    spawn: [10.65, 1.24, 4.85],
+    spawnRotY: -Math.PI / 2 - 0.25,
   },
   {
     id: 'vr-dev',
@@ -176,7 +281,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.28,
     mass: 0.4,
     restitution: 0.45,
-    spawn: [16.9, 1.02, 7.3],
+    spawn: [10.25, 1.02, 4.55],
     spawnRotY: -0.5,
   },
   // Skills Desk â€” Pink ultrawide monitor
@@ -205,7 +310,7 @@ const INITIAL_PROPS: PropConfig[] = [
     spawn: [5.5, 1.55, -9.2],
     spawnRotY: -0.35,
   },
-  // Streamer & Recording Studio Desk - Dual monitors (Twitch purple + OBS cyan)
+  // Streamer & Recording Studio Desk (relocated to Back-Left) - Dual monitors
   {
     id: 'mon-stream-1',
     kind: 'monitor',
@@ -215,8 +320,8 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.62,
     mass: 0.85,
     restitution: 0.35,
-    spawn: [18.0, 1.24, 0.25],
-    spawnRotY: -Math.PI / 2,
+    spawn: [-10.05, 1.24, -8.9],
+    spawnRotY: 0,
   },
   {
     id: 'mon-stream-2',
@@ -227,11 +332,54 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.56,
     mass: 0.75,
     restitution: 0.35,
-    spawn: [18.0, 1.24, 1.48],
-    spawnRotY: -Math.PI / 2 - 0.22,
+    spawn: [-8.82, 1.24, -8.9],
+    spawnRotY: -0.22,
   },
 
-  // === 5 DESTRUCTIBLE JIU-JITSU BELTS ON BACK WALL (Negro -> Marron -> Morado -> Azul -> Blanco) ===
+  // === MESA DE MEDIOS (TV, Radio Moderna y Diarios tirables/rompibles!) ===
+  {
+    id: 'press-tv',
+    kind: 'tv',
+    color: '#0f172a',
+    screenColor: '#0ea5e9',
+    size: 0.58,
+    mass: 0.85,
+    restitution: 0.35,
+    spawn: [-15.75, 1.24, -1.75],
+    spawnRotY: Math.PI / 2,
+  },
+  {
+    id: 'press-radio',
+    kind: 'radio',
+    color: '#1e293b',
+    size: 0.36,
+    mass: 0.55,
+    restitution: 0.4,
+    spawn: [-15.55, 1.08, -0.05],
+    spawnRotY: Math.PI / 2 - 0.18,
+  },
+  {
+    id: 'press-newspaper-1',
+    kind: 'newspaper',
+    color: '#f1f5f9',
+    size: 0.34,
+    mass: 0.35,
+    restitution: 0.32,
+    spawn: [-14.95, 0.96, -1.0],
+    spawnRotY: 0.2,
+  },
+  {
+    id: 'press-newspaper-2',
+    kind: 'newspaper',
+    color: '#e2e8f0',
+    size: 0.34,
+    mass: 0.35,
+    restitution: 0.32,
+    spawn: [-14.92, 1.12, -1.02],
+    spawnRotY: -0.15,
+  },
+
+  // === 5 DESTRUCTIBLE JIU-JITSU BELTS ON BACK WALL ABOVE GUITARS (Negro -> Marron -> Morado -> Azul -> Blanco) ===
   {
     id: 'bjj-belt-black',
     kind: 'belt',
@@ -241,7 +389,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.2, 2.45, -11.46],
+    spawn: [-4.9, 3.35, -11.46],
   },
   {
     id: 'bjj-belt-brown',
@@ -252,7 +400,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.2, 2.15, -11.46],
+    spawn: [-4.9, 3.05, -11.46],
   },
   {
     id: 'bjj-belt-purple',
@@ -263,7 +411,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.2, 1.85, -11.46],
+    spawn: [-4.9, 2.75, -11.46],
   },
   {
     id: 'bjj-belt-blue',
@@ -274,7 +422,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.2, 1.55, -11.46],
+    spawn: [-4.9, 2.45, -11.46],
   },
   {
     id: 'bjj-belt-white',
@@ -285,13 +433,12 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.45,
     mass: 0.45,
     restitution: 0.42,
-    spawn: [0.2, 1.25, -11.46],
+    spawn: [-4.9, 2.15, -11.46],
   },
 
-  // === GOOGLE-COLORED GIANT YOGA / GYM BALLS (trimmed to 3 for mobile FPS) ===
-  { id: 'ball-blue', kind: 'ball', color: '#4285F4', size: 0.52, mass: 0.7, restitution: 0.78, spawn: [-3.8, 0.52, -1.6] },
-  { id: 'ball-red', kind: 'ball', color: '#EA4335', size: 0.48, mass: 0.65, restitution: 0.78, spawn: [5.4, 0.48, -1.2] },
-  { id: 'ball-yellow', kind: 'ball', color: '#FBBC05', size: 0.44, mass: 0.6, restitution: 0.8, spawn: [-3.0, 0.44, 4.4] },
+  // === GIANT RED BALL + AFA SOCCER BALL ⚽ (small colored balls removed for cleaner FPS) ===
+  { id: 'ball-soccer', kind: 'soccer', color: '#ffffff', size: 0.46, mass: 0.55, restitution: 0.84, spawn: [-8.2, 0.46, -3.4] },
+  { id: 'ball-giant-red', kind: 'ball', color: '#EA4335', size: 0.88, mass: 1.25, restitution: 0.84, spawn: [-3.8, 0.88, -6.2] },
 
   // === STACK OF CARDBOARD DELIVERY BOXES (trimmed to 2 for mobile FPS) ===
   { id: 'box-1', kind: 'box', color: '#c08446', size: 0.58, mass: 1.0, restitution: 0.35, spawn: [2.2, 0.29, 3.0] },
@@ -300,7 +447,7 @@ const INITIAL_PROPS: PropConfig[] = [
   // === COLORFUL FOAM CUBE ===
   { id: 'cube-1', kind: 'cube', color: '#4285F4', size: 0.46, mass: 0.7, restitution: 0.45, spawn: [-5.6, 0.23, 2.0] },
 
-  // === 2 GUITARS ON TRIPOD STANDS (KNOCKABLE!) ===
+  // === 2 GUITARS ON TRIPOD STANDS (right next to the Gamer / Streamer Setup!) ===
   {
     id: 'guitar-electric',
     kind: 'guitar',
@@ -309,8 +456,8 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.74,
     mass: 0.95,
     restitution: 0.35,
-    spawn: [-3.4, 0.74, -9.2],
-    spawnRotY: 0.28,
+    spawn: [-6.1, 0.74, -8.8],
+    spawnRotY: 0.32,
   },
   {
     id: 'guitar-acoustic',
@@ -320,7 +467,7 @@ const INITIAL_PROPS: PropConfig[] = [
     size: 0.74,
     mass: 0.9,
     restitution: 0.35,
-    spawn: [-2.1, 0.74, -9.2],
+    spawn: [-5.0, 0.74, -8.1],
     spawnRotY: -0.22,
   },
 
@@ -336,17 +483,19 @@ function createInitialBodies(): PropBody[] {
         ? 0.74
         : p.kind === 'letter'
           ? 0.56
-          : p.kind === 'belt'
+          : p.kind === 'belt' || p.kind === 'newspaper'
             ? 0.08
-            : p.kind === 'monitor'
-              ? 0.36
-              : p.kind === 'vr'
-                ? 0.12
-                : p.kind === 'cylinder'
-                  ? 0.28
-                  : p.kind === 'cone'
-                    ? p.size
-                    : p.size * 0.5;
+            : p.kind === 'radio'
+              ? 0.2
+              : p.kind === 'monitor' || p.kind === 'tv'
+                ? 0.36
+                : p.kind === 'vr'
+                  ? 0.12
+                  : p.kind === 'cylinder'
+                    ? 0.28
+                    : p.kind === 'cone' || p.kind === 'ball' || p.kind === 'soccer'
+                      ? p.size
+                      : p.size * 0.5;
     const radius =
       p.kind === 'guitar'
         ? 0.44
@@ -354,11 +503,15 @@ function createInitialBodies(): PropBody[] {
           ? 0.48
           : p.kind === 'belt'
             ? 0.34
-            : p.kind === 'ball'
-              ? p.size
-              : p.kind === 'monitor'
-                ? 0.45
-                : p.size * 0.62;
+            : p.kind === 'tv'
+              ? 0.42
+              : p.kind === 'radio' || p.kind === 'newspaper'
+                ? 0.28
+                : p.kind === 'ball' || p.kind === 'soccer'
+                  ? p.size
+                  : p.kind === 'monitor'
+                    ? 0.45
+                    : p.size * 0.62;
     return {
       kind: p.kind,
       pinned: Boolean(p.pinned),
@@ -392,10 +545,18 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
   const bodiesRef = useRef<PropBody[]>(createInitialBodies());
   const objectRefs = useRef<Array<THREE.Object3D | null>>([]);
   const lastKickBroadcastRef = useRef<Record<number, number>>({});
+  const lastGrabUiRef = useRef<{ held: boolean; canGrab: boolean }>({
+    held: false,
+    canGrab: false,
+  });
 
   useEffect(() => {
     bodiesRef.current = createInitialBodies();
     lastKickBroadcastRef.current = {};
+    grabState.heldIndex = null;
+    grabState.grabRequested = false;
+    lastGrabUiRef.current = { held: false, canGrab: false };
+    notifyGrabState(false, false);
   }, [resetSignal]);
 
   useFrame((_, rawDelta) => {
@@ -407,6 +568,9 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
       const ev = realtimeEvents.pendingPropKicks.shift()!;
       const target = bodies[ev.idx];
       if (!target) continue;
+      if (grabState.heldIndex === ev.idx) {
+        grabState.heldIndex = null;
+      }
       target.pinned = false;
       target.x = ev.x;
       target.y = ev.y;
@@ -424,20 +588,125 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
     const pz = characterState.z;
     const pvx = characterState.vx;
     const pvz = characterState.vz;
+    const pRotY = characterState.rotY;
     const pSpeed = Math.hypot(pvx, pvz);
+
+    // 0A. Handle Grab / Throw requests (KeyF on PC or Agarrar/Tirar button on Mobile)
+    const GRAB_RANGE = 2.65;
+    if (grabState.grabRequested) {
+      grabState.grabRequested = false;
+      if (grabState.heldIndex !== null) {
+        // Throw the currently held prop forward in a satisfying arc!
+        const idx = grabState.heldIndex;
+        const b = bodies[idx];
+        grabState.heldIndex = null;
+        if (b) {
+          const throwSpeed = 13.5 / Math.max(0.75, Math.sqrt(b.mass));
+          const fx = Math.sin(pRotY);
+          const fz = Math.cos(pRotY);
+          b.pinned = false;
+          b.vx = fx * throwSpeed + pvx * 0.65;
+          b.vy = 6.2;
+          b.vz = fz * throwSpeed + pvz * 0.65;
+          b.avx = fz * 6.5;
+          b.avy = (idx % 2 === 0 ? 1 : -1) * 5.2;
+          b.avz = -fx * 6.5;
+          realtimeEvents.sendPropKick?.({
+            idx,
+            x: b.x,
+            y: b.y,
+            z: b.z,
+            vx: b.vx,
+            vy: b.vy,
+            vz: b.vz,
+            avx: b.avx,
+            avy: b.avy,
+            avz: b.avz,
+          });
+        }
+      } else {
+        // Grab the closest prop within reach
+        let bestIdx = -1;
+        let bestDist = GRAB_RANGE;
+        for (let i = 0; i < bodies.length; i++) {
+          const b = bodies[i];
+          const d = Math.hypot(b.x - px, b.z - pz);
+          const dy = Math.abs(b.y - (py + 0.9));
+          if (d < bestDist && dy < 2.2) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+        if (bestIdx !== -1) {
+          grabState.heldIndex = bestIdx;
+          const b = bodies[bestIdx];
+          b.pinned = false;
+          b.vx = 0;
+          b.vy = 0;
+          b.vz = 0;
+          b.avx = 0;
+          b.avy = 0;
+          b.avz = 0;
+          b.rx = 0;
+          b.rz = 0;
+        }
+      }
+    }
+
+    // Update held prop carry position right in front of the robot's hands
+    const heldIdx = grabState.heldIndex;
+    if (heldIdx !== null) {
+      const hb = bodies[heldIdx];
+      if (hb) {
+        const carryDist = 0.88 + hb.radius * 0.48;
+        hb.x = px + Math.sin(pRotY) * carryDist;
+        hb.y = py + 1.42 + hb.halfH * 0.35;
+        hb.z = pz + Math.cos(pRotY) * carryDist;
+        hb.vx = pvx;
+        hb.vy = 0;
+        hb.vz = pvz;
+        hb.rx = 0;
+        hb.ry = pRotY;
+        hb.rz = 0;
+      }
+    }
+
+    // Compute canGrab proximity for HUD / Mobile button (zero React re-render unless state flips)
+    let nearGrabbable = false;
+    if (heldIdx === null) {
+      for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        if (
+          Math.hypot(b.x - px, b.z - pz) < GRAB_RANGE &&
+          Math.abs(b.y - (py + 0.9)) < 2.2
+        ) {
+          nearGrabbable = true;
+          break;
+        }
+      }
+    }
+    const isHolding = heldIdx !== null;
+    if (
+      isHolding !== lastGrabUiRef.current.held ||
+      nearGrabbable !== lastGrabUiRef.current.canGrab
+    ) {
+      lastGrabUiRef.current.held = isHolding;
+      lastGrabUiRef.current.canGrab = nearGrabbable;
+      notifyGrabState(isHolding, nearGrabbable);
+    }
 
     // 0. Check if player, flying prop, or remote visitor smashes the BJJ Belt Wall Rack!
     const remoteRackVx = realtimeEvents.pendingRackSmash;
     realtimeEvents.pendingRackSmash = null;
-    let localRackHit = Math.abs(px - 0.2) < 1.55 && pz < -9.75 && (py > 0.12 || pSpeed > 1.2);
+    let localRackHit = Math.abs(px - -4.9) < 1.55 && pz < -9.75 && (py > 0.12 || pSpeed > 1.2);
     if (!localRackHit && remoteRackVx === null) {
       for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i];
         if (b.pinned) continue;
         if (
-          Math.abs(b.x - 0.2) < 1.4 &&
+          Math.abs(b.x - -4.9) < 1.4 &&
           b.z < -10.2 &&
-          b.y > 0.75 &&
+          b.y > 1.4 &&
           Math.hypot(b.vx, b.vy, b.vz) > 1.8
         ) {
           localRackHit = true;
@@ -469,6 +738,7 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
 
     // 1. Integrate forces, tabletop support, player collisions, furniture & walls
     for (let i = 0; i < bodies.length; i++) {
+      if (i === heldIdx) continue;
       const b = bodies[i];
       if (b.pinned) continue;
       const cosTilt = Math.abs(Math.cos(b.rx) * Math.cos(b.rz));
@@ -616,13 +886,41 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
         b.z = maxZ;
         b.vz = -Math.abs(b.vz) * b.restitution;
       }
+
+      // Teleport ANY physics prop that enters the Spawn Portal straight back to the Oscars red carpet!
+      if (
+        Math.hypot(b.x - SPAWN_PORTAL.x, b.z - SPAWN_PORTAL.z) <= SPAWN_PORTAL.radius &&
+        b.y <= 3.1
+      ) {
+        b.x = (Math.random() - 0.5) * 0.7;
+        b.y = 2.0 + effHalfH;
+        b.z = -5.4;
+        b.vx = (Math.random() - 0.5) * 2.0;
+        b.vy = 3.4;
+        b.vz = 5.2;
+        b.avx = 4.5;
+        b.avy = (i % 2 === 0 ? 1 : -1) * 5.0;
+        b.avz = 3.5;
+        realtimeEvents.sendPropKick?.({
+          idx: i,
+          x: b.x,
+          y: b.y,
+          z: b.z,
+          vx: b.vx,
+          vy: b.vy,
+          vz: b.vz,
+          avx: b.avx,
+          avy: b.avy,
+          avz: b.avz,
+        });
+      }
     }
 
     // 2. Prop-to-prop collisions
     for (let i = 0; i < bodies.length; i++) {
-      if (bodies[i].pinned) continue;
+      if (i === heldIdx || bodies[i].pinned) continue;
       for (let j = i + 1; j < bodies.length; j++) {
-        if (bodies[j].pinned) continue;
+        if (j === heldIdx || bodies[j].pinned) continue;
         const a = bodies[i];
         const b = bodies[j];
         const dx = b.x - a.x;
@@ -814,6 +1112,147 @@ export function PhysicsProps({ resetSignal }: PhysicsPropsProps) {
                 </mesh>
               )}
             </group>
+          );
+        }
+
+        if (prop.kind === 'tv') {
+          return (
+            <group
+              key={prop.id}
+              ref={(el) => {
+                objectRefs.current[idx] = el;
+              }}
+              position={prop.spawn}
+              rotation={[0, prop.spawnRotY ?? 0, 0]}
+            >
+              {/* Modern Smart TV thin dark bezel */}
+              <mesh position={[0, 0.06, 0]} castShadow>
+                <boxGeometry args={[1.05, 0.6, 0.06]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.25} metalness={0.4} />
+              </mesh>
+              {/* Glowing broadcast screen */}
+              <mesh position={[0, 0.06, 0.036]}>
+                <planeGeometry args={[0.96, 0.5]} />
+                <meshStandardMaterial
+                  color="#0f172a"
+                  emissive="#0ea5e9"
+                  emissiveIntensity={0.85}
+                  roughness={0.15}
+                />
+              </mesh>
+              {/* Red LIVE news ticker bar & dot */}
+              <mesh position={[0, -0.14, 0.04]}>
+                <planeGeometry args={[0.96, 0.09]} />
+                <meshStandardMaterial color="#dc2626" emissive="#ef4444" emissiveIntensity={1.2} />
+              </mesh>
+              <mesh position={[-0.38, 0.24, 0.04]}>
+                <circleGeometry args={[0.032, 12]} />
+                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2.2} />
+              </mesh>
+              {/* Dual slim metal feet */}
+              <mesh position={[-0.32, -0.3, 0]}>
+                <boxGeometry args={[0.05, 0.12, 0.22]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.7} roughness={0.25} />
+              </mesh>
+              <mesh position={[0.32, -0.3, 0]}>
+                <boxGeometry args={[0.05, 0.12, 0.22]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.7} roughness={0.25} />
+              </mesh>
+            </group>
+          );
+        }
+
+        if (prop.kind === 'radio') {
+          return (
+            <group
+              key={prop.id}
+              ref={(el) => {
+                objectRefs.current[idx] = el;
+              }}
+              position={prop.spawn}
+              rotation={[0, prop.spawnRotY ?? 0, 0]}
+            >
+              {/* Sleek modern digital studio radio chassis */}
+              <mesh castShadow>
+                <boxGeometry args={[0.64, 0.34, 0.24]} />
+                <meshStandardMaterial color="#1e293b" roughness={0.35} metalness={0.35} />
+              </mesh>
+              {/* Left & right dark acoustic speaker grilles */}
+              <mesh position={[-0.2, 0, 0.125]}>
+                <circleGeometry args={[0.11, 16]} />
+                <meshStandardMaterial color="#090d16" roughness={0.8} />
+              </mesh>
+              <mesh position={[0.2, 0, 0.125]}>
+                <circleGeometry args={[0.11, 16]} />
+                <meshStandardMaterial color="#090d16" roughness={0.8} />
+              </mesh>
+              {/* Glowing amber digital FM display */}
+              <mesh position={[0, 0.05, 0.126]}>
+                <planeGeometry args={[0.17, 0.09]} />
+                <meshStandardMaterial color="#0f172a" emissive="#f59e0b" emissiveIntensity={1.6} />
+              </mesh>
+              {/* Brushed silver tuning knob */}
+              <mesh position={[0, -0.08, 0.135]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.036, 0.036, 0.03, 12]} />
+                <meshStandardMaterial color="#cbd5e1" metalness={0.8} roughness={0.2} />
+              </mesh>
+              {/* Angled chrome telescoping antenna */}
+              <mesh position={[0.24, 0.34, -0.05]} rotation={[0, 0, -0.28]}>
+                <cylinderGeometry args={[0.008, 0.012, 0.44, 8]} />
+                <meshStandardMaterial color="#e2e8f0" metalness={0.9} roughness={0.15} />
+              </mesh>
+            </group>
+          );
+        }
+
+        if (prop.kind === 'newspaper') {
+          return (
+            <group
+              key={prop.id}
+              ref={(el) => {
+                objectRefs.current[idx] = el;
+              }}
+              position={prop.spawn}
+              rotation={[0, prop.spawnRotY ?? 0, 0]}
+            >
+              {/* Folded newspaper stack */}
+              <mesh castShadow receiveShadow>
+                <boxGeometry args={[0.56, 0.14, 0.42]} />
+                <meshStandardMaterial color={prop.color} roughness={0.88} />
+              </mesh>
+              {/* Printed dark headline header band on top */}
+              <mesh position={[0, 0.072, -0.12]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.48, 0.08]} />
+                <meshStandardMaterial color="#1e293b" roughness={0.8} />
+              </mesh>
+              {/* Printed photo box & article columns */}
+              <mesh position={[0.12, 0.072, 0.04]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.2, 0.16]} />
+                <meshStandardMaterial color="#475569" roughness={0.8} />
+              </mesh>
+              <mesh position={[-0.12, 0.072, 0.04]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.2, 0.14]} />
+                <meshStandardMaterial color="#94a3b8" roughness={0.85} />
+              </mesh>
+            </group>
+          );
+        }
+
+        if (prop.kind === 'soccer') {
+          const soccerTex = getSoccerBallTexture();
+          return (
+            <mesh
+              key={prop.id}
+              ref={(el) => {
+                objectRefs.current[idx] = el;
+              }}
+              position={prop.spawn}
+              castShadow
+              receiveShadow
+            >
+              <sphereGeometry args={[prop.size, 24, 24]} />
+              <meshStandardMaterial map={soccerTex} roughness={0.38} metalness={0.05} />
+            </mesh>
           );
         }
 
